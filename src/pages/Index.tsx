@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { SuperUserInterface } from "@/components/SuperUserInterface";
 
 interface Message {
   id: number;
@@ -21,7 +22,29 @@ const Index = () => {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState("");
+  const [isSuperUser, setIsSuperUser] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    checkUserRole();
+  }, []);
+
+  const checkUserRole = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      setIsSuperUser(roles?.role === 'super_user');
+    } catch (error) {
+      console.error('Error al verificar rol de usuario:', error);
+    }
+  };
 
   const { data: words, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query],
@@ -31,7 +54,6 @@ const Index = () => {
       try {
         console.log('Iniciando búsqueda con query:', query);
         
-        // Agregar mensaje de carga
         const loadingMessage: Message = {
           id: messages.length + 1,
           text: "Procesando tu consulta...",
@@ -40,7 +62,6 @@ const Index = () => {
         };
         setMessages(prev => [...prev, loadingMessage]);
         
-        // Preparar mensajes previos para contexto
         const previousMessages = messages
           .filter(m => m.role && m.content)
           .map(m => ({
@@ -65,7 +86,6 @@ const Index = () => {
           throw aiError;
         }
 
-        // Si la IA sugiere una aclaración o mejora
         if (aiResponse.followUp) {
           setMessages(prev => prev.map(msg => 
             msg.id === loadingMessage.id 
@@ -82,7 +102,6 @@ const Index = () => {
           return [];
         }
 
-        // Si tenemos una consulta SQL, ejecutarla
         if (aiResponse.sqlQuery) {
           console.log('Ejecutando consulta SQL:', aiResponse.sqlQuery);
           
@@ -101,7 +120,6 @@ const Index = () => {
             throw sqlError;
           }
 
-          // Actualizar mensaje con resultados
           if (results && results.length > 0) {
             const responseText = `Encontré ${results.length} ${results.length === 1 ? 'palabra' : 'palabras'}: ${results.map((w: { word: string }) => w.word).join(', ')}`;
             setMessages(prev => prev.map(msg => 
@@ -116,6 +134,7 @@ const Index = () => {
                   }
                 : msg
             ));
+            return results;
           } else {
             const noResultsText = "No encontré palabras que coincidan con tu búsqueda. ¿Te gustaría intentar con otros criterios?";
             setMessages(prev => prev.map(msg => 
@@ -161,7 +180,6 @@ const Index = () => {
       return;
     }
 
-    // Agregar mensaje del usuario al chat
     const userMessage: Message = {
       id: messages.length,
       text: messageInput,
@@ -171,7 +189,6 @@ const Index = () => {
     };
     setMessages(prev => [...prev, userMessage]);
 
-    // Actualizar la consulta y ejecutar la búsqueda
     setQuery(messageInput);
     setMessageInput("");
     
@@ -189,7 +206,6 @@ const Index = () => {
       </h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Sección de Chat */}
         <div className="space-y-4">
           <Card>
             <CardContent className="p-4">
@@ -236,9 +252,17 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
+
+          {isSuperUser && words && words.length > 0 && (
+            <SuperUserInterface
+              originalQuery={query}
+              sqlQuery={messages[messages.length - 1]?.content || ""}
+              results={words}
+              conversationContext={messages}
+            />
+          )}
         </div>
 
-        {/* Sección de Resultados */}
         <div className="space-y-4">
           <Card>
             <CardContent className="p-4">
