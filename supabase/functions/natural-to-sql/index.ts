@@ -15,7 +15,14 @@ serve(async (req) => {
   }
 
   try {
+    if (!PERPLEXITY_API_KEY) {
+      throw new Error('PERPLEXITY_API_KEY no está configurada');
+    }
+
     const { query } = await req.json();
+    if (!query) {
+      throw new Error('No se proporcionó una consulta');
+    }
 
     console.log('Procesando consulta:', query);
 
@@ -49,9 +56,18 @@ serve(async (req) => {
       }),
     });
 
-    const data = await response.json();
-    const sqlQuery = data.choices[0].message.content.trim();
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Error de Perplexity:', errorData);
+      throw new Error('Error al procesar la consulta con Perplexity');
+    }
 
+    const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Respuesta inválida de Perplexity');
+    }
+
+    const sqlQuery = data.choices[0].message.content.trim();
     console.log('SQL generado:', sqlQuery);
 
     return new Response(JSON.stringify({ sqlQuery }), {
@@ -59,7 +75,11 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error en la función natural-to-sql:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'Error interno del servidor',
+        details: error.toString()
+      }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
