@@ -1,7 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,13 +23,33 @@ serve(async (req) => {
       throw new Error('PERPLEXITY_API_KEY no está configurada');
     }
 
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const { query } = await req.json();
+    
     if (!query) {
       console.error('Error: No se proporcionó una consulta');
       throw new Error('No se proporcionó una consulta');
     }
 
     console.log('Procesando consulta:', query);
+
+    // Primero, buscar consultas similares en el historial
+    const { data: historicalQueries, error: historyError } = await supabase
+      .from('query_history')
+      .select('*')
+      .eq('natural_query', query)
+      .eq('successful', true)
+      .limit(1);
+
+    if (historyError) {
+      console.error('Error al buscar en el historial:', historyError);
+    } else if (historicalQueries && historicalQueries.length > 0) {
+      console.log('Consulta encontrada en el historial:', historicalQueries[0]);
+      return new Response(
+        JSON.stringify({ sqlQuery: historicalQueries[0].sql_query }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const requestBody = {
       model: 'llama-3.1-sonar-small-128k-online',
@@ -37,8 +60,8 @@ serve(async (req) => {
           Las consultas deben ser sobre la tabla 'words' que tiene una columna 'word' de tipo texto.
           SOLO debes devolver la consulta SQL, nada más.
           Por ejemplo:
-          - Para "palabras con q sin e ni i" deberías devolver: SELECT word FROM words WHERE word LIKE '%q%' AND word NOT LIKE '%e%' AND word NOT LIKE '%i%'
-          - Para "palabras que empiezan con a" deberías devolver: SELECT word FROM words WHERE word LIKE 'a%'
+          - Para "palabras con q sin e ni i" deberías devolver: SELECT word FROM words WHERE word ILIKE '%q%' AND word NOT ILIKE '%e%' AND word NOT ILIKE '%i%'
+          - Para "palabras que empiezan con a" deberías devolver: SELECT word FROM words WHERE word ILIKE 'a%'
           - Para "palabras de 5 letras" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 5
           NO incluyas explicaciones, SOLO la consulta SQL.`
         },
@@ -79,6 +102,46 @@ serve(async (req) => {
 
     const sqlQuery = data.choices[0].message.content.trim();
     console.log('SQL generado:', sqlQuery);
+
+    // Validar la consulta SQL generada
+    try {
+      const { data: testData, error: testError } = await supabase.rpc('execute_natural_query', {
+        query_text: sqlQuery
+      });
+
+      // Si la consulta es exitosa, guardarla en el historial
+      if (!testError) {
+        const { error: insertError } = await supabase
+          .from('query_history')
+          .insert({
+            natural_query: query,
+            sql_query: sqlQuery,
+            successful: true
+          });
+
+        if (insertError) {
+          console.error('Error al guardar la consulta en el historial:', insertError);
+        }
+      } else {
+        // Si hay error en la consulta, guardarlo en el historial
+        const { error: insertError } = await supabase
+          .from('query_history')
+          .insert({
+            natural_query: query,
+            sql_query: sqlQuery,
+            successful: false,
+            error_message: testError.message
+          });
+
+        if (insertError) {
+          console.error('Error al guardar el error en el historial:', insertError);
+        }
+        throw testError;
+      }
+    } catch (error) {
+      console.error('Error al validar la consulta SQL:', error);
+      throw error;
+    }
 
     return new Response(JSON.stringify({ sqlQuery }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

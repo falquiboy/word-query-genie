@@ -125,6 +125,33 @@ export type Database = {
         }
         Relationships: []
       }
+      query_history: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          natural_query: string
+          sql_query: string
+          successful: boolean
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          natural_query: string
+          sql_query: string
+          successful?: boolean
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          natural_query?: string
+          sql_query?: string
+          successful?: boolean
+        }
+        Relationships: []
+      }
       user_progress: {
         Row: {
           id: string
