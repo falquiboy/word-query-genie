@@ -1,50 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { SuperUserInterface } from "@/components/SuperUserInterface";
-
-interface Message {
-  id: number;
-  text: string;
-  isUser: boolean;
-  isLoading?: boolean;
-  role?: 'user' | 'assistant';
-  content?: string;
-}
 
 const Index = () => {
   const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [messageInput, setMessageInput] = useState("");
-  const [isSuperUser, setIsSuperUser] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    checkUserRole();
-  }, []);
-
-  const checkUserRole = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-
-      setIsSuperUser(roles?.role === 'super_user');
-    } catch (error) {
-      console.error('Error al verificar rol de usuario:', error);
-    }
-  };
 
   const { data: words, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query],
@@ -52,256 +15,97 @@ const Index = () => {
       if (!query.trim()) return [];
       
       try {
-        console.log('Iniciando búsqueda con query:', query);
-        
-        const loadingMessage: Message = {
-          id: messages.length + 1,
-          text: "Procesando tu consulta...",
-          isUser: false,
-          isLoading: true
-        };
-        setMessages(prev => [...prev, loadingMessage]);
-        
-        const previousMessages = messages
-          .filter(m => m.role && m.content)
-          .map(m => ({
-            role: m.role,
-            content: m.content
-          }));
-
-        const { data: aiResponse, error: aiError } = await supabase.functions.invoke('natural-to-sql', {
-          body: { 
-            query,
-            previousMessages 
-          }
+        // Primero, convertimos la consulta en lenguaje natural a SQL
+        const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
+          body: { query: query }
         });
 
-        if (aiError) {
-          console.error('Error al procesar la consulta:', aiError);
-          setMessages(prev => prev.map(msg => 
-            msg.id === loadingMessage.id 
-              ? { ...msg, text: "Error al procesar la consulta", isLoading: false }
-              : msg
-          ));
-          throw aiError;
-        }
+        if (sqlError) throw sqlError;
+        if (!sqlData?.sqlQuery) throw new Error('No se pudo generar la consulta SQL');
 
-        if (aiResponse.followUp) {
-          setMessages(prev => prev.map(msg => 
-            msg.id === loadingMessage.id 
-              ? {
-                  id: msg.id,
-                  text: aiResponse.followUp,
-                  isUser: false,
-                  isLoading: false,
-                  role: 'assistant',
-                  content: aiResponse.followUp
-                }
-              : msg
-          ));
-          return [];
-        }
+        console.log('Consulta SQL generada:', sqlData.sqlQuery);
 
-        if (aiResponse.sqlQuery) {
-          console.log('Ejecutando consulta SQL:', aiResponse.sqlQuery);
-          
-          const { data: results, error: sqlError } = await supabase
-            .rpc('execute_natural_query', {
-              query_text: aiResponse.sqlQuery
-            });
+        // Luego, ejecutamos la consulta SQL generada
+        const { data, error } = await supabase
+          .rpc('execute_natural_query', {
+            query_text: sqlData.sqlQuery
+          });
 
-          if (sqlError) {
-            console.error('Error al ejecutar consulta:', sqlError);
-            setMessages(prev => prev.map(msg => 
-              msg.id === loadingMessage.id 
-                ? { ...msg, text: "Error al ejecutar la consulta", isLoading: false }
-                : msg
-            ));
-            throw sqlError;
-          }
-
-          if (results && results.length > 0) {
-            const responseText = `Encontré ${results.length} ${results.length === 1 ? 'palabra' : 'palabras'}: ${results.map((w: { word: string }) => w.word).join(', ')}`;
-            setMessages(prev => prev.map(msg => 
-              msg.id === loadingMessage.id 
-                ? {
-                    id: msg.id,
-                    text: responseText,
-                    isUser: false,
-                    isLoading: false,
-                    role: 'assistant',
-                    content: responseText
-                  }
-                : msg
-            ));
-            return results;
-          } else {
-            const noResultsText = "No encontré palabras que coincidan con tu búsqueda. ¿Te gustaría intentar con otros criterios?";
-            setMessages(prev => prev.map(msg => 
-              msg.id === loadingMessage.id 
-                ? {
-                    id: msg.id,
-                    text: noResultsText,
-                    isUser: false,
-                    isLoading: false,
-                    role: 'assistant',
-                    content: noResultsText
-                  }
-                : msg
-            ));
-          }
-
-          return results || [];
-        }
-
-        return [];
+        if (error) throw error;
+        return data || [];
       } catch (error) {
-        console.error('Error en la búsqueda:', error);
+        console.error('Error:', error);
         toast({
           variant: "destructive",
-          title: "Error en la búsqueda",
-          description: "Hubo un problema al procesar tu consulta. Por favor, inténtalo de nuevo.",
+          title: "Error",
+          description: "No se pudo ejecutar la consulta. Por favor, inténtalo de nuevo.",
         });
         return [];
       }
     },
     enabled: false,
-    retry: 1,
-    retryDelay: 1000,
   });
 
   const handleSearch = async () => {
-    if (!messageInput.trim()) {
+    if (!query.trim()) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Por favor, ingresa un mensaje.",
+        description: "Por favor, ingresa una consulta.",
       });
       return;
     }
-
-    const userMessage: Message = {
-      id: messages.length,
-      text: messageInput,
-      isUser: true,
-      role: 'user',
-      content: messageInput
-    };
-    setMessages(prev => [...prev, userMessage]);
-
-    setQuery(messageInput);
-    setMessageInput("");
-    
-    try {
-      await refetch();
-    } catch (error) {
-      console.error('Error al refrescar la consulta:', error);
-    }
+    refetch();
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">
-        Búsqueda Conversacional de Palabras
-      </h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <Card>
-            <CardContent className="p-4">
-              <ScrollArea className="h-[400px] w-full pr-4">
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                          message.isUser
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        {message.isLoading ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            {message.text}
-                          </div>
-                        ) : (
-                          message.text
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-              
-              <div className="flex gap-2 mt-4">
-                <Input
-                  placeholder="Describe las palabras que buscas..."
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSearch();
-                    }
-                  }}
-                />
-                <Button onClick={handleSearch}>Enviar</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {isSuperUser && words && words.length > 0 && (
-            <SuperUserInterface
-              originalQuery={query}
-              sqlQuery={messages[messages.length - 1]?.content || ""}
-              results={words}
-              conversationContext={messages}
-            />
-          )}
+      <div className="max-w-2xl mx-auto space-y-6">
+        <h1 className="text-3xl font-bold text-center mb-8">
+          Búsqueda de Palabras
+        </h1>
+        
+        <div className="flex gap-2">
+          <Input
+            placeholder="Describe las palabras que buscas (ej: palabras con q sin e ni i)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1"
+          />
+          <Button onClick={handleSearch}>Buscar</Button>
         </div>
 
-        <div className="space-y-4">
-          <Card>
-            <CardContent className="p-4">
-              {isLoading && (
-                <div className="text-center text-gray-500">Buscando palabras...</div>
-              )}
+        {isLoading && (
+          <div className="text-center text-gray-500">Buscando palabras...</div>
+        )}
 
-              {error && (
-                <div className="text-center text-red-500">
-                  Ocurrió un error al buscar las palabras.
-                </div>
-              )}
+        {error && (
+          <div className="text-center text-red-500">
+            Ocurrió un error al buscar las palabras.
+          </div>
+        )}
 
-              {words && words.length > 0 && (
-                <div>
-                  <h2 className="font-semibold mb-2">Resultados ({words.length} palabras):</h2>
-                  <ScrollArea className="h-[400px]">
-                    <div className="grid grid-cols-2 gap-2">
-                      {words.map((result: { word: string }) => (
-                        <div
-                          key={result.word}
-                          className="p-2 bg-secondary rounded-md text-center"
-                        >
-                          {result.word}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
+        {words && words.length > 0 && (
+          <div className="border rounded-lg p-4">
+            <h2 className="font-semibold mb-2">Resultados ({words.length} palabras):</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {words.map((result: { word: string }) => (
+                <div
+                  key={result.word}
+                  className="p-2 bg-secondary rounded-md text-center"
+                >
+                  {result.word}
                 </div>
-              )}
+              ))}
+            </div>
+          </div>
+        )}
 
-              {words && words.length === 0 && !isLoading && (
-                <div className="text-center text-gray-500">
-                  No se encontraron palabras con los criterios especificados.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {words && words.length === 0 && !isLoading && (
+          <div className="text-center text-gray-500">
+            No se encontraron palabras con los criterios especificados.
+          </div>
+        )}
       </div>
     </div>
   );
