@@ -25,12 +25,21 @@ const Index = () => {
       if (!query.trim()) return [];
       
       try {
+        console.log('Iniciando búsqueda con query:', query);
+        
         const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
           body: { query: query }
         });
 
-        if (sqlError) throw sqlError;
-        if (!sqlData?.sqlQuery) throw new Error('No se pudo generar la consulta SQL');
+        if (sqlError) {
+          console.error('Error al generar SQL:', sqlError);
+          throw sqlError;
+        }
+        
+        if (!sqlData?.sqlQuery) {
+          console.error('No se generó consulta SQL');
+          throw new Error('No se pudo generar la consulta SQL');
+        }
 
         console.log('Consulta SQL generada:', sqlData.sqlQuery);
 
@@ -39,19 +48,26 @@ const Index = () => {
             query_text: sqlData.sqlQuery
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error al ejecutar consulta:', error);
+          throw error;
+        }
+
+        console.log('Resultados obtenidos:', data);
         return data || [];
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error en la búsqueda:', error);
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "No se pudo ejecutar la consulta. Por favor, inténtalo de nuevo.",
+          title: "Error en la búsqueda",
+          description: "Hubo un problema al procesar tu consulta. Por favor, inténtalo de nuevo.",
         });
         return [];
       }
     },
     enabled: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 
   const handleSearch = async () => {
@@ -75,7 +91,12 @@ const Index = () => {
     // Actualizar la consulta y ejecutar la búsqueda
     setQuery(messageInput);
     setMessageInput("");
-    await refetch();
+    
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error al refrescar la consulta:', error);
+    }
 
     // Agregar respuesta del sistema
     const systemMessage: Message = {
