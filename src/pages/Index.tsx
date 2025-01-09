@@ -15,14 +15,26 @@ const Index = () => {
       if (!query.trim()) return [];
       
       try {
+        // Primero, convertimos la consulta en lenguaje natural a SQL
+        const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
+          body: { query: query }
+        });
+
+        if (sqlError) throw sqlError;
+        if (!sqlData?.sqlQuery) throw new Error('No se pudo generar la consulta SQL');
+
+        console.log('Consulta SQL generada:', sqlData.sqlQuery);
+
+        // Luego, ejecutamos la consulta SQL generada
         const { data, error } = await supabase
           .rpc('execute_natural_query', {
-            query_text: `SELECT word FROM words WHERE word LIKE '%q%' AND word NOT LIKE '%e%' AND word NOT LIKE '%i%'`
+            query_text: sqlData.sqlQuery
           });
 
         if (error) throw error;
         return data || [];
       } catch (error) {
+        console.error('Error:', error);
         toast({
           variant: "destructive",
           title: "Error",
