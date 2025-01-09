@@ -101,6 +101,36 @@ export type Database = {
           },
         ]
       }
+      learning_examples: {
+        Row: {
+          approved_by: string | null
+          conversation_context: Json
+          created_at: string | null
+          id: string
+          notes: string | null
+          original_query: string
+          successful_sql: string
+        }
+        Insert: {
+          approved_by?: string | null
+          conversation_context: Json
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          original_query: string
+          successful_sql: string
+        }
+        Update: {
+          approved_by?: string | null
+          conversation_context?: Json
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          original_query?: string
+          successful_sql?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -226,6 +256,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       words: {
         Row: {
           alphagram: string | null
@@ -341,6 +389,7 @@ export type Database = {
         | "admite participio femenino"
         | "admite participio masculino plural"
         | "no admite terminación -ad, -ed, -id, respectivamente"
+      user_role: "user" | "super_user"
       verb_kind:
         | "Infinitivo de un verbo transitivo"
         | "Infinitivo de un verbo intransitivo"
