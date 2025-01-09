@@ -125,6 +125,41 @@ export type Database = {
         }
         Relationships: []
       }
+      query_feedback: {
+        Row: {
+          created_at: string
+          feedback_type: Database["public"]["Enums"]["feedback_type"]
+          id: string
+          query_id: string
+          user_comment: string | null
+          was_helpful: boolean
+        }
+        Insert: {
+          created_at?: string
+          feedback_type: Database["public"]["Enums"]["feedback_type"]
+          id?: string
+          query_id: string
+          user_comment?: string | null
+          was_helpful: boolean
+        }
+        Update: {
+          created_at?: string
+          feedback_type?: Database["public"]["Enums"]["feedback_type"]
+          id?: string
+          query_id?: string
+          user_comment?: string | null
+          was_helpful?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "query_feedback_query_id_fkey"
+            columns: ["query_id"]
+            isOneToOne: false
+            referencedRelation: "query_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       query_history: {
         Row: {
           created_at: string
@@ -293,6 +328,12 @@ export type Database = {
       }
     }
     Enums: {
+      feedback_type:
+        | "too_many_results"
+        | "too_few_results"
+        | "not_what_expected"
+        | "exactly_what_needed"
+        | "needs_clarification"
       se_property: "admite la terminación -se"
       sym_property:
         | "sin tratamiento especial"
