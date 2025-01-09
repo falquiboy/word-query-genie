@@ -54,6 +54,17 @@ const Index = () => {
         }
 
         console.log('Resultados obtenidos:', data);
+        
+        // Agregar mensaje del sistema con los resultados
+        if (data && data.length > 0) {
+          const resultsMessage: Message = {
+            id: messages.length + 2,
+            text: `Encontré ${data.length} palabras: ${data.map((w: { word: string }) => w.word).join(', ')}`,
+            isUser: false,
+          };
+          setMessages(prev => [...prev, resultsMessage]);
+        }
+
         return data || [];
       } catch (error) {
         console.error('Error en la búsqueda:', error);
@@ -97,16 +108,6 @@ const Index = () => {
     } catch (error) {
       console.error('Error al refrescar la consulta:', error);
     }
-
-    // Agregar respuesta del sistema
-    const systemMessage: Message = {
-      id: messages.length + 1,
-      text: words && words.length > 0 
-        ? `He encontrado ${words.length} palabra(s) que coinciden con tu búsqueda. ¿Quieres refinar más tu búsqueda?`
-        : "No encontré palabras que coincidan con esos criterios. ¿Quieres intentar con otros criterios?",
-      isUser: false,
-    };
-    setMessages(prev => [...prev, systemMessage]);
   };
 
   return (
