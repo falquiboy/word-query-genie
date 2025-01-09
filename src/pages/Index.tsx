@@ -9,13 +9,32 @@ const Index = () => {
   const [query, setQuery] = useState("");
   const { toast } = useToast();
 
+  // Función para detectar el tipo de consulta
+  const isCustomSyntax = (query: string): boolean => {
+    // Por ahora retornamos false para mantener el comportamiento de lenguaje natural
+    // Aquí implementaremos la detección de la sintaxis especial
+    return false;
+  };
+
+  // Función para procesar consultas con sintaxis especial
+  const processCustomSyntax = async (query: string) => {
+    // Aquí implementaremos el procesamiento de la sintaxis especial
+    // Por ahora, lanzamos un error para indicar que no está implementado
+    throw new Error("Sintaxis especial aún no implementada");
+  };
+
   const { data: words, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query],
     queryFn: async () => {
       if (!query.trim()) return [];
       
       try {
-        // Primero, convertimos la consulta en lenguaje natural a SQL
+        // Detectamos el tipo de consulta
+        if (isCustomSyntax(query)) {
+          return await processCustomSyntax(query);
+        }
+
+        // Si no es sintaxis especial, procedemos con el procesamiento de lenguaje natural
         const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
           body: { query: query }
         });
@@ -25,7 +44,6 @@ const Index = () => {
 
         console.log('Consulta SQL generada:', sqlData.sqlQuery);
 
-        // Luego, ejecutamos la consulta SQL generada
         const { data, error } = await supabase
           .rpc('execute_natural_query', {
             query_text: sqlData.sqlQuery
@@ -67,7 +85,7 @@ const Index = () => {
         
         <div className="flex gap-2">
           <Input
-            placeholder="Describe las palabras que buscas (ej: palabras con q sin e ni i)"
+            placeholder="Describe las palabras que buscas (ej: palabras con q sin e ni i) o usa sintaxis especial"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1"
