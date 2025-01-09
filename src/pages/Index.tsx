@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 interface Message {
   id: number;
   text: string;
   isUser: boolean;
+  isLoading?: boolean;
 }
 
 const Index = () => {
@@ -27,17 +29,37 @@ const Index = () => {
       try {
         console.log('Iniciando búsqueda con query:', query);
         
+        // Agregar mensaje de carga
+        const loadingMessage: Message = {
+          id: messages.length + 1,
+          text: "Buscando palabras...",
+          isUser: false,
+          isLoading: true
+        };
+        setMessages(prev => [...prev, loadingMessage]);
+        
         const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
           body: { query: query }
         });
 
         if (sqlError) {
           console.error('Error al generar SQL:', sqlError);
+          // Reemplazar mensaje de carga con error
+          setMessages(prev => prev.map(msg => 
+            msg.id === loadingMessage.id 
+              ? { ...msg, text: "Error al generar la consulta SQL", isLoading: false }
+              : msg
+          ));
           throw sqlError;
         }
         
         if (!sqlData?.sqlQuery) {
           console.error('No se generó consulta SQL');
+          setMessages(prev => prev.map(msg => 
+            msg.id === loadingMessage.id 
+              ? { ...msg, text: "No se pudo generar la consulta SQL", isLoading: false }
+              : msg
+          ));
           throw new Error('No se pudo generar la consulta SQL');
         }
 
@@ -50,19 +72,39 @@ const Index = () => {
 
         if (error) {
           console.error('Error al ejecutar consulta:', error);
+          setMessages(prev => prev.map(msg => 
+            msg.id === loadingMessage.id 
+              ? { ...msg, text: "Error al ejecutar la consulta", isLoading: false }
+              : msg
+          ));
           throw error;
         }
 
         console.log('Resultados obtenidos:', data);
         
-        // Agregar mensaje del sistema con los resultados
+        // Reemplazar mensaje de carga con resultados
         if (data && data.length > 0) {
-          const resultsMessage: Message = {
-            id: messages.length + 2,
-            text: `Encontré ${data.length} palabras: ${data.map((w: { word: string }) => w.word).join(', ')}`,
-            isUser: false,
-          };
-          setMessages(prev => [...prev, resultsMessage]);
+          setMessages(prev => prev.map(msg => 
+            msg.id === loadingMessage.id 
+              ? {
+                  id: msg.id,
+                  text: `Encontré ${data.length} ${data.length === 1 ? 'palabra' : 'palabras'}: ${data.map((w: { word: string }) => w.word).join(', ')}`,
+                  isUser: false,
+                  isLoading: false
+                }
+              : msg
+          ));
+        } else {
+          setMessages(prev => prev.map(msg => 
+            msg.id === loadingMessage.id 
+              ? {
+                  id: msg.id,
+                  text: "No encontré palabras que coincidan con tu búsqueda",
+                  isUser: false,
+                  isLoading: false
+                }
+              : msg
+          ));
         }
 
         return data || [];
@@ -135,7 +177,14 @@ const Index = () => {
                             : 'bg-muted'
                         }`}
                       >
-                        {message.text}
+                        {message.isLoading ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {message.text}
+                          </div>
+                        ) : (
+                          message.text
+                        )}
                       </div>
                     </div>
                   ))}
