@@ -13,6 +13,8 @@ interface Message {
   text: string;
   isUser: boolean;
   isLoading?: boolean;
+  role?: 'user' | 'assistant';
+  content?: string;
 }
 
 const Index = () => {
@@ -32,82 +34,108 @@ const Index = () => {
         // Agregar mensaje de carga
         const loadingMessage: Message = {
           id: messages.length + 1,
-          text: "Buscando palabras...",
+          text: "Procesando tu consulta...",
           isUser: false,
           isLoading: true
         };
         setMessages(prev => [...prev, loadingMessage]);
         
-        const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
-          body: { query: query }
+        // Preparar mensajes previos para contexto
+        const previousMessages = messages
+          .filter(m => m.role && m.content)
+          .map(m => ({
+            role: m.role,
+            content: m.content
+          }));
+
+        const { data: aiResponse, error: aiError } = await supabase.functions.invoke('natural-to-sql', {
+          body: { 
+            query,
+            previousMessages 
+          }
         });
 
-        if (sqlError) {
-          console.error('Error al generar SQL:', sqlError);
-          // Reemplazar mensaje de carga con error
+        if (aiError) {
+          console.error('Error al procesar la consulta:', aiError);
           setMessages(prev => prev.map(msg => 
             msg.id === loadingMessage.id 
-              ? { ...msg, text: "Error al generar la consulta SQL", isLoading: false }
+              ? { ...msg, text: "Error al procesar la consulta", isLoading: false }
               : msg
           ));
-          throw sqlError;
-        }
-        
-        if (!sqlData?.sqlQuery) {
-          console.error('No se generó consulta SQL');
-          setMessages(prev => prev.map(msg => 
-            msg.id === loadingMessage.id 
-              ? { ...msg, text: "No se pudo generar la consulta SQL", isLoading: false }
-              : msg
-          ));
-          throw new Error('No se pudo generar la consulta SQL');
+          throw aiError;
         }
 
-        console.log('Consulta SQL generada:', sqlData.sqlQuery);
-
-        const { data, error } = await supabase
-          .rpc('execute_natural_query', {
-            query_text: sqlData.sqlQuery
-          });
-
-        if (error) {
-          console.error('Error al ejecutar consulta:', error);
-          setMessages(prev => prev.map(msg => 
-            msg.id === loadingMessage.id 
-              ? { ...msg, text: "Error al ejecutar la consulta", isLoading: false }
-              : msg
-          ));
-          throw error;
-        }
-
-        console.log('Resultados obtenidos:', data);
-        
-        // Reemplazar mensaje de carga con resultados
-        if (data && data.length > 0) {
+        // Si la IA sugiere una aclaración o mejora
+        if (aiResponse.followUp) {
           setMessages(prev => prev.map(msg => 
             msg.id === loadingMessage.id 
               ? {
                   id: msg.id,
-                  text: `Encontré ${data.length} ${data.length === 1 ? 'palabra' : 'palabras'}: ${data.map((w: { word: string }) => w.word).join(', ')}`,
+                  text: aiResponse.followUp,
                   isUser: false,
-                  isLoading: false
+                  isLoading: false,
+                  role: 'assistant',
+                  content: aiResponse.followUp
                 }
               : msg
           ));
-        } else {
-          setMessages(prev => prev.map(msg => 
-            msg.id === loadingMessage.id 
-              ? {
-                  id: msg.id,
-                  text: "No encontré palabras que coincidan con tu búsqueda",
-                  isUser: false,
-                  isLoading: false
-                }
-              : msg
-          ));
+          return [];
         }
 
-        return data || [];
+        // Si tenemos una consulta SQL, ejecutarla
+        if (aiResponse.sqlQuery) {
+          console.log('Ejecutando consulta SQL:', aiResponse.sqlQuery);
+          
+          const { data: results, error: sqlError } = await supabase
+            .rpc('execute_natural_query', {
+              query_text: aiResponse.sqlQuery
+            });
+
+          if (sqlError) {
+            console.error('Error al ejecutar consulta:', sqlError);
+            setMessages(prev => prev.map(msg => 
+              msg.id === loadingMessage.id 
+                ? { ...msg, text: "Error al ejecutar la consulta", isLoading: false }
+                : msg
+            ));
+            throw sqlError;
+          }
+
+          // Actualizar mensaje con resultados
+          if (results && results.length > 0) {
+            const responseText = `Encontré ${results.length} ${results.length === 1 ? 'palabra' : 'palabras'}: ${results.map((w: { word: string }) => w.word).join(', ')}`;
+            setMessages(prev => prev.map(msg => 
+              msg.id === loadingMessage.id 
+                ? {
+                    id: msg.id,
+                    text: responseText,
+                    isUser: false,
+                    isLoading: false,
+                    role: 'assistant',
+                    content: responseText
+                  }
+                : msg
+            ));
+          } else {
+            const noResultsText = "No encontré palabras que coincidan con tu búsqueda. ¿Te gustaría intentar con otros criterios?";
+            setMessages(prev => prev.map(msg => 
+              msg.id === loadingMessage.id 
+                ? {
+                    id: msg.id,
+                    text: noResultsText,
+                    isUser: false,
+                    isLoading: false,
+                    role: 'assistant',
+                    content: noResultsText
+                  }
+                : msg
+            ));
+          }
+
+          return results || [];
+        }
+
+        return [];
       } catch (error) {
         console.error('Error en la búsqueda:', error);
         toast({
@@ -138,6 +166,8 @@ const Index = () => {
       id: messages.length,
       text: messageInput,
       isUser: true,
+      role: 'user',
+      content: messageInput
     };
     setMessages(prev => [...prev, userMessage]);
 

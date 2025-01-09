@@ -12,44 +12,24 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     if (!OPENAI_API_KEY) {
-      console.error('Error: OPENAI_API_KEY no está configurada');
       throw new Error('OPENAI_API_KEY no está configurada');
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    const { query } = await req.json();
+    const { query, previousMessages = [] } = await req.json();
     
     if (!query) {
-      console.error('Error: No se proporcionó una consulta');
       throw new Error('No se proporcionó una consulta');
     }
 
     console.log('Procesando consulta:', query);
-
-    // Primero, buscar consultas similares en el historial
-    const { data: historicalQueries, error: historyError } = await supabase
-      .from('query_history')
-      .select('*')
-      .eq('natural_query', query)
-      .eq('successful', true)
-      .limit(1);
-
-    if (historyError) {
-      console.error('Error al buscar en el historial:', historyError);
-    } else if (historicalQueries && historicalQueries.length > 0) {
-      console.log('Consulta encontrada en el historial:', historicalQueries[0]);
-      return new Response(
-        JSON.stringify({ sqlQuery: historicalQueries[0].sql_query }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('Mensajes previos:', previousMessages);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -62,86 +42,59 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Eres un experto en SQL que convierte consultas en lenguaje natural a consultas SQL válidas.
+            content: `Eres un asistente experto en SQL y palabras en español que ayuda a buscar palabras específicas.
             Las consultas deben ser sobre la tabla 'words' que tiene una columna 'word' de tipo texto.
-            SOLO debes devolver la consulta SQL, nada más.
-            Por ejemplo:
-            - Para "palabras con q sin e ni i" deberías devolver: SELECT word FROM words WHERE word ILIKE '%q%' AND word NOT ILIKE '%e%' AND word NOT ILIKE '%i%'
-            - Para "palabras que empiezan con a" deberías devolver: SELECT word FROM words WHERE word ILIKE 'a%'
-            - Para "palabras de 5 letras" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 5
-            NO incluyas explicaciones, SOLO la consulta SQL.`
+            Debes analizar la consulta del usuario y:
+            1. Si la consulta es clara, devolver un objeto JSON con:
+               - sqlQuery: la consulta SQL correspondiente
+               - followUp: null
+            2. Si la consulta es ambigua o podrías sugerir mejoras, devolver:
+               - sqlQuery: null
+               - followUp: una pregunta o sugerencia para mejorar la búsqueda
+            3. Si entiendes la consulta pero no hay resultados, sugiere alternativas:
+               - sqlQuery: la consulta SQL original
+               - followUp: sugerencias de búsquedas alternativas
+            
+            Ejemplos de respuestas:
+            1. Query clara: {"sqlQuery": "SELECT word FROM words WHERE LENGTH(word) = 5", "followUp": null}
+            2. Query ambigua: {"sqlQuery": null, "followUp": "¿Te refieres a palabras que empiezan con 'a' o que contienen 'a' en cualquier posición?"}
+            3. Sin resultados: {"sqlQuery": "SELECT word FROM words WHERE word LIKE '%xyz%'", "followUp": "No encontré palabras con 'xyz'. ¿Te gustaría buscar palabras con 'xy' o 'yz' por separado?"}`
           },
+          ...previousMessages,
           {
             role: 'user',
             content: query
           }
         ],
         temperature: 0.1,
-        max_tokens: 100
+        max_tokens: 200
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Error de OpenAI. Status:', response.status);
-      console.error('Respuesta de error:', errorData);
+      console.error('Error de OpenAI:', response.status, errorData);
       throw new Error(`Error al procesar la consulta con OpenAI. Status: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Respuesta de OpenAI:', JSON.stringify(data, null, 2));
+    console.log('Respuesta de OpenAI:', data);
 
     if (!data.choices?.[0]?.message?.content) {
-      console.error('Respuesta inválida de OpenAI:', JSON.stringify(data, null, 2));
       throw new Error('Respuesta inválida de OpenAI');
     }
 
-    const sqlQuery = data.choices[0].message.content.trim();
-    console.log('SQL generado:', sqlQuery);
-
-    // Validar la consulta SQL generada
     try {
-      const { data: testData, error: testError } = await supabase.rpc('execute_natural_query', {
-        query_text: sqlQuery
+      const aiResponse = JSON.parse(data.choices[0].message.content);
+      console.log('Respuesta parseada:', aiResponse);
+      
+      return new Response(JSON.stringify(aiResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-
-      // Si la consulta es exitosa, guardarla en el historial
-      if (!testError) {
-        const { error: insertError } = await supabase
-          .from('query_history')
-          .insert({
-            natural_query: query,
-            sql_query: sqlQuery,
-            successful: true
-          });
-
-        if (insertError) {
-          console.error('Error al guardar la consulta en el historial:', insertError);
-        }
-      } else {
-        // Si hay error en la consulta, guardarlo en el historial
-        const { error: insertError } = await supabase
-          .from('query_history')
-          .insert({
-            natural_query: query,
-            sql_query: sqlQuery,
-            successful: false,
-            error_message: testError.message
-          });
-
-        if (insertError) {
-          console.error('Error al guardar el error en el historial:', insertError);
-        }
-        throw testError;
-      }
-    } catch (error) {
-      console.error('Error al validar la consulta SQL:', error);
-      throw error;
+    } catch (parseError) {
+      console.error('Error al parsear la respuesta:', parseError);
+      throw new Error('Formato de respuesta inválido');
     }
-
-    return new Response(JSON.stringify({ sqlQuery }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('Error en la función natural-to-sql:', error);
     return new Response(
