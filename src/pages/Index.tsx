@@ -50,7 +50,10 @@ const Index = () => {
           });
 
         if (error) throw error;
-        return data || [];
+        
+        // Ordenar los resultados por longitud de palabra
+        const sortedData = data ? [...data].sort((a, b) => a.word.length - b.word.length) : [];
+        return sortedData;
       } catch (error) {
         console.error('Error:', error);
         toast({
