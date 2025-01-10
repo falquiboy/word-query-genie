@@ -51,9 +51,20 @@ const Index = () => {
 
         if (error) throw error;
         
-        // Ordenar los resultados por longitud de palabra
-        const sortedData = data ? [...data].sort((a, b) => a.word.length - b.word.length) : [];
-        return sortedData;
+        // Agrupar por longitud y ordenar alfabéticamente dentro de cada grupo
+        const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
+          const length = curr.word.length;
+          if (!acc[length]) acc[length] = [];
+          acc[length].push(curr.word);
+          return acc;
+        }, {}) : {};
+
+        // Ordenar cada grupo alfabéticamente
+        Object.keys(groupedData).forEach(length => {
+          groupedData[Number(length)].sort();
+        });
+
+        return groupedData;
       } catch (error) {
         console.error('Error:', error);
         toast({
@@ -61,7 +72,7 @@ const Index = () => {
           title: "Error",
           description: "No se pudo ejecutar la consulta. Por favor, inténtalo de nuevo.",
         });
-        return [];
+        return {};
       }
     },
     enabled: false,
@@ -106,23 +117,32 @@ const Index = () => {
           </div>
         )}
 
-        {words && words.length > 0 && (
+        {words && Object.keys(words).length > 0 && (
           <div className="border rounded-lg p-4">
-            <h2 className="font-semibold mb-2">Resultados ({words.length} palabras):</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {words.map((result: { word: string }) => (
-                <div
-                  key={result.word}
-                  className="p-2 bg-secondary rounded-md text-center"
-                >
-                  {result.word}
-                </div>
-              ))}
+            <h2 className="font-semibold mb-4">Resultados por longitud:</h2>
+            <div className="space-y-4">
+              {Object.entries(words)
+                .sort(([a], [b]) => Number(a) - Number(b))
+                .map(([length, wordList]) => (
+                  <div key={length} className="border-t pt-2 first:border-t-0 first:pt-0">
+                    <h3 className="font-medium mb-2">{length} letras ({wordList.length} palabras):</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {wordList.map((word: string) => (
+                        <div
+                          key={word}
+                          className="p-2 bg-secondary rounded-md text-center"
+                        >
+                          {word}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
         )}
 
-        {words && words.length === 0 && !isLoading && (
+        {words && Object.keys(words).length === 0 && !isLoading && (
           <div className="text-center text-gray-500">
             No se encontraron palabras con los criterios especificados.
           </div>
