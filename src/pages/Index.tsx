@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Mic, MicOff } from "lucide-react";
 
 const Index = () => {
   const [query, setQuery] = useState("");
   const { toast } = useToast();
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   // Función para detectar el tipo de consulta
   const isCustomSyntax = (query: string): boolean => {
@@ -90,6 +94,69 @@ const Index = () => {
     refetch();
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        
+        reader.onloadend = async () => {
+          try {
+            const base64Audio = (reader.result as string).split(',')[1];
+            
+            const { data, error } = await supabase.functions.invoke('voice-to-text', {
+              body: { audio: base64Audio }
+            });
+
+            if (error) throw error;
+            if (data.text) {
+              setQuery(prevQuery => prevQuery + ' ' + data.text.trim());
+            }
+
+          } catch (error) {
+            console.error('Error processing voice:', error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "No se pudo procesar el audio. Por favor, inténtalo de nuevo.",
+            });
+          }
+        };
+
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo acceder al micrófono. Por favor, verifica los permisos.",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
   // Calcular el total de palabras
   const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + wordList.length, 0) : 0;
 
@@ -107,6 +174,14 @@ const Index = () => {
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1"
           />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={isRecording ? stopRecording : startRecording}
+            className={isRecording ? "bg-red-100 hover:bg-red-200" : ""}
+          >
+            {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
           <Button onClick={handleSearch}>Buscar</Button>
         </div>
 
