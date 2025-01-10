@@ -90,6 +90,9 @@ const Index = () => {
     refetch();
   };
 
+  // Calcular el total de palabras
+  const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + wordList.length, 0) : 0;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -119,6 +122,9 @@ const Index = () => {
 
         {words && Object.keys(words).length > 0 && (
           <div className="border rounded-lg p-4">
+            <div className="text-lg font-semibold mb-4 text-center">
+              Total de palabras encontradas: {totalWords}
+            </div>
             <h2 className="font-semibold mb-4">Resultados por longitud:</h2>
             <div className="space-y-4">
               {Object.entries(words)
