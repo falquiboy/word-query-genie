@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea"; MessageSquare } from "lucide-react";
+import { Textarea } from "./ui/textarea";
+import { MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
