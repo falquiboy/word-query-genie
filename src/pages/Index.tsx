@@ -65,9 +65,10 @@ const Index = () => {
           if (plusOneData.error) throw plusOneData.error;
           if (shorterData.error) throw shorterData.error;
 
-          const groupByLength = (words: { word: string }[]): WordGroups => {
-            return words.reduce((acc: WordGroups, curr) => {
-              const length = curr.word.length;
+          const groupByLength = (words: { word: string }[] | { word: string, word_length: number }[]): WordGroups => {
+            return words.reduce((acc: WordGroups, curr: any) => {
+              // For shorter words, use word_length if available, otherwise use word.length
+              const length = curr.word_length || curr.word.length;
               if (!acc[length]) acc[length] = [];
               acc[length].push({ word: curr.word, is_exact: true });
               return acc;
