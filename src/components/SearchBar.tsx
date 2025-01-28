@@ -26,6 +26,12 @@ const SearchBar = ({
     ? "Ej: casa" 
     : "Ej: palabras con q sin e ni i";
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isLoading) {
+      onSearch();
+    }
+  };
+
   return (
     <div className="relative animate-fade-in delay-200">
       <div className="flex gap-2">
@@ -33,6 +39,7 @@ const SearchBar = ({
           placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyPress={handleKeyPress}
           className="flex-1 h-12 text-lg shadow-sm"
         />
         <Button
