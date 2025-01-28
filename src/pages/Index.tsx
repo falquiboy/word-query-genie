@@ -45,12 +45,13 @@ const Index = () => {
             throw error;
           }
 
-          const groupedData = data ? data.reduce((acc: any, curr: { word: string }) => {
+          const groupedData = data?.reduce((acc: Record<number, typeof data>, curr) => {
+            if (!curr || typeof curr.word !== 'string') return acc;
             const length = curr.word.length;
             if (!acc[length]) acc[length] = [];
             acc[length].push({ word: curr.word, is_exact: true });
             return acc;
-          }, {}) : {};
+          }, {}) || {};
 
           return { exact: groupedData, plusOne: {}, shorter: {} };
         } else {
@@ -58,16 +59,23 @@ const Index = () => {
             input_text: query
           });
 
-          if (error) throw error;
+          if (error) {
+            console.error('Error en find_word_variations:', error);
+            if (error.message?.includes('statement timeout')) {
+              throw new Error('La consulta tardó demasiado tiempo. Por favor, intenta una búsqueda más específica.');
+            }
+            throw error;
+          }
 
-          // Agrupar los resultados por tipo y longitud
           const results: AnagramResults = {
             exact: {},
             plusOne: {},
             shorter: {}
           };
 
-          data?.forEach((item: WordVariation) => {
+          (data as WordVariation[])?.forEach((item) => {
+            if (!item || typeof item.word !== 'string') return;
+            
             const length = item.word.length;
             const targetGroup = 
               item.variation_type === 'exact' ? results.exact :
