@@ -18,9 +18,12 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
 
   if (!words || Object.keys(words).length === 0) return null;
 
+  // Get the longest word length from the results
+  const maxLength = Math.max(...Object.keys(words).map(Number));
+
   const entries = Object.entries(words)
-    .sort(([a], [b]) => Number(a) - Number(b))
-    .filter(([length, _]) => showShorterWords || length === Object.keys(words)[0]);
+    .sort(([a], [b]) => Number(b) - Number(a)) // Sort by length in descending order
+    .filter(([length, _]) => showShorterWords || Number(length) === maxLength);
 
   const handleCopyResults = async () => {
     try {
