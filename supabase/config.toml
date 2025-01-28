@@ -2,3 +2,6 @@ project_id = "duxzmtvrcaphljakflod"
 
 [functions.natural-to-sql]
 verify_jwt = false
+
+[functions.anagrams]
+verify_jwt = false

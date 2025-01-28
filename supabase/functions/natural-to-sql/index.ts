@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('=== INICIO DE PROCESAMIENTO DE CONSULTA ===');
+    console.log('=== INICIO DE PROCESAMIENTO DE CONSULTA NATURAL ===');
     
     if (!OPENAI_API_KEY) {
       console.error('Error: OPENAI_API_KEY no está configurada');
@@ -34,13 +34,10 @@ serve(async (req) => {
 
     console.log('Consulta recibida:', query);
 
-    // Si la consulta solo contiene letras (incluyendo ñ/Ñ), es una búsqueda de anagramas
+    // Si contiene solo letras, rechazar la consulta
     if (query.match(/^[A-Za-zÑñ]+$/)) {
-      console.log('Detectada búsqueda de anagramas, retornando consulta directa');
-      return new Response(
-        JSON.stringify({ sqlQuery: query }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('Error: Consulta de anagramas recibida en endpoint incorrecto');
+      throw new Error('Las consultas de anagramas deben usar el endpoint /anagrams');
     }
 
     // Primero, buscar consultas similares en el historial
@@ -177,7 +174,7 @@ serve(async (req) => {
       throw error;
     }
 
-    console.log('=== FIN DE PROCESAMIENTO DE CONSULTA ===');
+    console.log('=== FIN DE PROCESAMIENTO DE CONSULTA NATURAL ===');
     return new Response(JSON.stringify({ sqlQuery }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

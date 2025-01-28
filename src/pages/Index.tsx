@@ -15,11 +15,6 @@ const Index = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const isCustomSyntax = (query: string): boolean => {
-    // Si la consulta solo contiene letras (incluyendo ñ/Ñ), es una búsqueda de anagramas
-    return /^[A-Za-zÑñ]+$/.test(query);
-  };
-
   const { data: words, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query, mode],
     queryFn: async () => {
@@ -38,6 +33,21 @@ const Index = () => {
 
           console.log('Consulta SQL generada:', sqlData.sqlQuery);
           sqlQuery = sqlData.sqlQuery;
+        } else {
+          // Modo anagramas
+          const { data: anagramData, error: anagramError } = await supabase.functions.invoke('anagrams', {
+            body: { query: query }
+          });
+
+          if (anagramError) throw anagramError;
+          if (!anagramData?.data) throw new Error('No se encontraron anagramas');
+
+          return anagramData.data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
+            const length = curr.word.length;
+            if (!acc[length]) acc[length] = [];
+            acc[length].push(curr.word);
+            return acc;
+          }, {});
         }
 
         console.log('Ejecutando consulta:', sqlQuery);
