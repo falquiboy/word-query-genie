@@ -85,6 +85,8 @@ serve(async (req) => {
             - Para "contiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
             - Para "tiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
             - Para "palabras con z" deberías devolver: SELECT word FROM words WHERE word ILIKE '%z%'
+            - Para "palabras que empiezan con pre y terminan en ción" deberías devolver: SELECT word FROM words WHERE word ILIKE 'pre%' AND word ILIKE '%ción'
+            - Para "palabras de 4 letras que empiezan con a" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 4 AND word ILIKE 'a%'
             
             Reglas importantes:
             1. SIEMPRE usa ILIKE para hacer las búsquedas case-insensitive
@@ -93,7 +95,8 @@ serve(async (req) => {
             4. Para búsquedas de inicio usa texto%
             5. Para búsquedas de final usa %texto
             6. NO incluyas explicaciones, SOLO la consulta SQL.
-            7. SIEMPRE incluye la palabra completa en el SELECT: SELECT word`
+            7. SIEMPRE incluye la palabra completa en el SELECT: SELECT word
+            8. SIEMPRE usa ORDER BY word para ordenar los resultados alfabéticamente`
           },
           {
             role: 'user',
