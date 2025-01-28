@@ -57,7 +57,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -70,6 +70,8 @@ serve(async (req) => {
             - "anagramas de ratones" -> "ratones"
             - "palabras que puedo formar con las letras casa" -> "casa"
             - "qué palabras se pueden hacer con estas letras: m e s a" -> "mesa"
+            - "palabras que se pueden formar con ratones" -> "ratones"
+            - "formar palabras con las letras de ratones" -> "ratones"
             
             Para otros tipos de consultas, genera una consulta SQL normal.
             Por ejemplo:
