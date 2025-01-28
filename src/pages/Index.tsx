@@ -39,6 +39,7 @@ const Index = () => {
           sqlQuery = sqlData.sqlQuery;
         }
 
+        console.log('Ejecutando consulta:', sqlQuery);
         const { data, error } = await supabase
           .rpc('execute_natural_query', {
             query_text: sqlQuery
@@ -51,6 +52,8 @@ const Index = () => {
           }
           throw error;
         }
+
+        console.log('Resultados obtenidos:', data);
         
         const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
           const length = curr.word.length;
