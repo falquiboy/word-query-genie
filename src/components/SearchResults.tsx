@@ -20,7 +20,7 @@ const SearchResults = ({ words, totalWords }: SearchResultsProps) => {
     try {
       const textToCopy = entries
         .map(([length, wordList]) => {
-          return `${length} letras (${wordList.length} palabras):\n${wordList.join(", ")}\n`;
+          return `${length} letras (${wordList.length} palabras):\n${wordList.join("\n")}\n`;
         })
         .join("\n");
 
