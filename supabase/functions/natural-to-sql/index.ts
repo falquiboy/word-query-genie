@@ -138,6 +138,7 @@ serve(async (req) => {
 
       if (!testError) {
         console.log('Consulta SQL validada exitosamente');
+        console.log('Resultados de prueba:', testData);
         // Guardar la consulta exitosa en el historial
         const { error: insertError } = await supabase
           .from('query_history')
