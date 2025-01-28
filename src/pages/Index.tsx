@@ -22,24 +22,35 @@ const Index = () => {
   const { data: words, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query],
     queryFn: async () => {
-      if (!query.trim()) return [];
+      if (!query.trim()) return {};
       
       try {
-        const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
-          body: { query: query }
-        });
+        let sqlQuery = query;
+        
+        if (!isCustomSyntax(query)) {
+          const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
+            body: { query: query }
+          });
 
-        if (sqlError) throw sqlError;
-        if (!sqlData?.sqlQuery) throw new Error('No se pudo generar la consulta SQL');
+          if (sqlError) throw sqlError;
+          if (!sqlData?.sqlQuery) throw new Error('No se pudo generar la consulta SQL');
 
-        console.log('Consulta SQL generada:', sqlData.sqlQuery);
+          console.log('Consulta SQL generada:', sqlData.sqlQuery);
+          sqlQuery = sqlData.sqlQuery;
+        }
 
         const { data, error } = await supabase
           .rpc('execute_natural_query', {
-            query_text: isCustomSyntax(query) ? query : sqlData.sqlQuery
+            query_text: sqlQuery
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error en execute_natural_query:', error);
+          if (error.message?.includes('statement timeout')) {
+            throw new Error('La consulta tardó demasiado tiempo. Por favor, intenta una búsqueda más específica.');
+          }
+          throw error;
+        }
         
         const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
           const length = curr.word.length;
@@ -53,17 +64,18 @@ const Index = () => {
         });
 
         return groupedData;
-      } catch (error) {
-        console.error('Error:', error);
+      } catch (error: any) {
+        console.error('Error detallado:', error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "No se pudo ejecutar la consulta. Por favor, inténtalo de nuevo.",
+          description: error.message || "No se pudo ejecutar la consulta. Por favor, inténtalo de nuevo.",
         });
-        return {};
+        throw error;
       }
     },
     enabled: false,
+    retry: false,
   });
 
   const handleSearch = async () => {
