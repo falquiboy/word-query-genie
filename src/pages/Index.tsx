@@ -167,7 +167,7 @@ const Index = () => {
     }
   };
 
-  const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + wordList.length, 0) : 0;
+  const totalWords = words ? Object.values(words).reduce((total, wordList) => total + (Array.isArray(wordList) ? wordList.length : 0), 0) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
