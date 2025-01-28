@@ -57,7 +57,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -72,6 +72,8 @@ serve(async (req) => {
             - "qué palabras se pueden hacer con estas letras: m e s a" -> "mesa"
             - "palabras que se pueden formar con ratones" -> "ratones"
             - "formar palabras con las letras de ratones" -> "ratones"
+            - "palabras usando las letras de ratones" -> "ratones"
+            - "palabras que contengan las letras de ratones" -> "SELECT word FROM words WHERE LENGTH(word) = 7 AND word ILIKE '%r%' AND word ILIKE '%a%' AND word ILIKE '%t%' AND word ILIKE '%o%' AND word ILIKE '%n%' AND word ILIKE '%e%' AND word ILIKE '%s%'"
             
             Para otros tipos de consultas, genera una consulta SQL normal.
             Por ejemplo:
@@ -108,8 +110,8 @@ serve(async (req) => {
 
     let sqlQuery = data.choices[0].message.content.trim();
     
-    // Si la respuesta no comienza con SELECT, asumimos que son letras para anagramas
-    if (!sqlQuery.toLowerCase().startsWith('select')) {
+    // Si la respuesta no comienza con SELECT y solo contiene letras, asumimos que son letras para anagramas
+    if (!sqlQuery.toLowerCase().startsWith('select') && sqlQuery.replace(/[^A-Za-zÑñ]/g, '').length === sqlQuery.length) {
       // Limpiamos la cadena de caracteres no deseados y espacios
       const letters = sqlQuery.replace(/[^A-Za-zÑñ]/g, '').toLowerCase();
       console.log('Letras extraídas para anagrama:', letters);
