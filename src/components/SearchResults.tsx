@@ -3,39 +3,73 @@ import AdUnit from "./AdUnit";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
 import { Copy } from "lucide-react";
+import { AnagramResults, WordGroups } from "@/types/words";
 
 interface SearchResultsProps {
-  words: { [key: string]: { word: string; is_exact: boolean }[] } | null;
+  results: AnagramResults | null;
   totalWords: number;
 }
 
-const SearchResults = ({ words, totalWords }: SearchResultsProps) => {
-  const { toast } = useToast();
-
+const WordList = ({ title, words }: { title: string; words: WordGroups }) => {
   if (!words || Object.keys(words).length === 0) return null;
 
   const entries = Object.entries(words).sort(([a], [b]) => Number(a) - Number(b));
 
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-primary/90">{title}</h3>
+      {entries.map(([length, wordList]) => (
+        <div key={length} className="space-y-3">
+          <h4 className="text-sm font-medium text-muted-foreground">
+            {length} letras ({wordList.length} palabras):
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {wordList.map((item) => (
+              <a
+                key={item.word}
+                href={`https://dle.rae.es/${item.word.toLowerCase()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
+              >
+                {item.word}
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const SearchResults = ({ results, totalWords }: SearchResultsProps) => {
+  const { toast } = useToast();
+
+  if (!results) return null;
+
   const handleCopyResults = async () => {
     try {
-      const textToCopy = entries
-        .map(([length, wordList]) => {
-          const exactMatches = wordList.filter(w => w.is_exact);
-          const nonExactMatches = wordList.filter(w => !w.is_exact);
-          
-          let text = `${length} letras (${wordList.length} palabras):\n`;
-          
-          if (exactMatches.length > 0) {
-            text += "Anagramas exactos:\n" + exactMatches.map(w => w.word).join("\n") + "\n";
-          }
-          
-          if (nonExactMatches.length > 0) {
-            text += "Palabras relacionadas:\n" + nonExactMatches.map(w => w.word).join("\n");
-          }
-          
-          return text;
+      const sections = [
+        { title: "Anagramas exactos", words: results.exact },
+        { title: "Palabras con una letra adicional", words: results.plusOne },
+        { title: "Palabras más cortas", words: results.shorter }
+      ];
+
+      const textToCopy = sections
+        .filter(section => Object.keys(section.words).length > 0)
+        .map(section => {
+          const entries = Object.entries(section.words)
+            .sort(([a], [b]) => Number(a) - Number(b));
+
+          return `${section.title}:\n\n${
+            entries.map(([length, wordList]) => 
+              `${length} letras (${wordList.length} palabras):\n${
+                wordList.map(w => w.word).join(", ")
+              }`
+            ).join("\n\n")
+          }`;
         })
-        .join("\n\n");
+        .join("\n\n" + "=".repeat(40) + "\n\n");
 
       await navigator.clipboard.writeText(textToCopy);
       
@@ -51,6 +85,10 @@ const SearchResults = ({ words, totalWords }: SearchResultsProps) => {
       });
     }
   };
+
+  const hasResults = totalWords > 0;
+
+  if (!hasResults) return null;
 
   return (
     <div className="border rounded-xl p-6 bg-card/50 backdrop-blur-sm shadow-sm animate-fade-in">
@@ -68,64 +106,10 @@ const SearchResults = ({ words, totalWords }: SearchResultsProps) => {
           Copiar resultados
         </Button>
       </div>
-      <div className="space-y-6">
-        {entries.map(([length, wordList], index) => {
-          const exactMatches = wordList.filter(w => w.is_exact);
-          const nonExactMatches = wordList.filter(w => !w.is_exact);
-
-          return (
-            <React.Fragment key={length}>
-              <div className="border-t pt-4 first:border-t-0 first:pt-0">
-                <h3 className="font-medium mb-3 text-muted-foreground">
-                  {length} letras ({wordList.length} palabras):
-                </h3>
-                {exactMatches.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-muted-foreground">Anagramas exactos:</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {exactMatches.map((item) => (
-                        <a
-                          key={item.word}
-                          href={`https://dle.rae.es/${item.word.toLowerCase()}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
-                        >
-                          {item.word}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {nonExactMatches.length > 0 && (
-                  <div className="space-y-3 mt-4">
-                    <h4 className="text-sm font-medium text-muted-foreground">Palabras relacionadas:</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {nonExactMatches.map((item) => (
-                        <a
-                          key={item.word}
-                          href={`https://dle.rae.es/${item.word.toLowerCase()}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 bg-secondary/30 hover:bg-secondary/60 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
-                        >
-                          {item.word}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* Insertar anuncio cada 3 grupos de palabras */}
-              {(index + 1) % 3 === 0 && index < entries.length - 1 && (
-                <AdUnit
-                  slot="1234567890" // Reemplazar con tu slot ID real
-                  className="animate-fade-in"
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
+      <div className="space-y-8">
+        <WordList title="Anagramas exactos" words={results.exact} />
+        <WordList title="Palabras con una letra adicional" words={results.plusOne} />
+        <WordList title="Palabras más cortas" words={results.shorter} />
       </div>
     </div>
   );

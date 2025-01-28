@@ -311,13 +311,28 @@ export type Database = {
           word: string
         }[]
       }
-      find_anagrams: {
+      find_exact_anagrams: {
         Args: {
           query_text: string
         }
         Returns: {
           word: string
-          is_exact: boolean
+        }[]
+      }
+      find_plus_one_letter: {
+        Args: {
+          query_text: string
+        }
+        Returns: {
+          word: string
+        }[]
+      }
+      find_shorter_words: {
+        Args: {
+          query_text: string
+        }
+        Returns: {
+          word: string
         }[]
       }
       get_words_batch: {

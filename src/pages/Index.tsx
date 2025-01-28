@@ -6,15 +6,7 @@ import SearchHeader from "@/components/SearchHeader";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import SearchStatus from "@/components/SearchStatus";
-
-interface WordResult {
-  word: string;
-  is_exact: boolean;
-}
-
-interface WordGroups {
-  [key: string]: WordResult[];
-}
+import { AnagramResults, WordGroups } from "@/types/words";
 
 const Index = () => {
   const [query, setQuery] = useState("");
@@ -24,10 +16,10 @@ const Index = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const { data: words, isLoading, error, refetch } = useQuery<WordGroups>({
+  const { data: results, isLoading, error, refetch } = useQuery<AnagramResults>({
     queryKey: ["words", query, mode],
     queryFn: async () => {
-      if (!query.trim()) return {};
+      if (!query.trim()) return { exact: {}, plusOne: {}, shorter: {} };
       
       try {
         if (mode === "natural") {
@@ -53,46 +45,40 @@ const Index = () => {
             throw error;
           }
 
-          console.log('Resultados obtenidos:', data);
-          
-          const groupedData = data ? data.reduce((acc: { [key: number]: WordResult[] }, curr: { word: string }) => {
+          const groupedData = data ? data.reduce((acc: WordGroups, curr: { word: string }) => {
             const length = curr.word.length;
             if (!acc[length]) acc[length] = [];
             acc[length].push({ word: curr.word, is_exact: true });
             return acc;
           }, {}) : {};
 
-          Object.keys(groupedData).forEach(length => {
-            groupedData[Number(length)].sort((a, b) => a.word.localeCompare(b.word));
-          });
-
-          return groupedData;
+          return { exact: groupedData, plusOne: {}, shorter: {} };
         } else {
-          // Modo anagramas - usar la función find_anagrams
-          const { data: anagramData, error: anagramError } = await supabase
-            .rpc('find_anagrams', {
-              query_text: query
-            });
+          // Modo anagramas - usar las tres nuevas funciones
+          const [exactData, plusOneData, shorterData] = await Promise.all([
+            supabase.rpc('find_exact_anagrams', { query_text: query }),
+            supabase.rpc('find_plus_one_letter', { query_text: query }),
+            supabase.rpc('find_shorter_words', { query_text: query })
+          ]);
 
-          if (anagramError) throw anagramError;
+          if (exactData.error) throw exactData.error;
+          if (plusOneData.error) throw plusOneData.error;
+          if (shorterData.error) throw shorterData.error;
 
-          const groupedData = anagramData ? anagramData.reduce((acc: { [key: number]: WordResult[] }, curr: { word: string, is_exact: boolean }) => {
-            const length = curr.word.length;
-            if (!acc[length]) acc[length] = [];
-            acc[length].push(curr);
-            return acc;
-          }, {}) : {};
+          const groupByLength = (words: { word: string }[]): WordGroups => {
+            return words.reduce((acc: WordGroups, curr) => {
+              const length = curr.word.length;
+              if (!acc[length]) acc[length] = [];
+              acc[length].push({ word: curr.word, is_exact: true });
+              return acc;
+            }, {});
+          };
 
-          Object.keys(groupedData).forEach(length => {
-            groupedData[Number(length)].sort((a, b) => {
-              // Primero ordenar por is_exact (true primero)
-              if (a.is_exact !== b.is_exact) return b.is_exact ? 1 : -1;
-              // Luego ordenar alfabéticamente
-              return a.word.localeCompare(b.word);
-            });
-          });
-
-          return groupedData;
+          return {
+            exact: groupByLength(exactData.data || []),
+            plusOne: groupByLength(plusOneData.data || []),
+            shorter: groupByLength(shorterData.data || [])
+          };
         }
       } catch (error: any) {
         console.error('Error detallado:', error);
@@ -183,7 +169,11 @@ const Index = () => {
     }
   };
 
-  const totalWords = words ? Object.values(words).reduce((total: number, wordList: WordResult[]) => total + wordList.length, 0) : 0;
+  const totalWords = results ? 
+    Object.values(results.exact).concat(
+      Object.values(results.plusOne),
+      Object.values(results.shorter)
+    ).reduce((total: number, wordList) => total + wordList.length, 0) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
@@ -195,16 +185,16 @@ const Index = () => {
             setQuery={setQuery}
             isRecording={isRecording}
             isLoading={isLoading}
-            onSearch={handleSearch}
+            onSearch={() => refetch()}
             onToggleRecording={isRecording ? stopRecording : startRecording}
             mode={mode}
           />
           <SearchStatus
             isLoading={isLoading}
             error={error}
-            noResults={!!words && Object.keys(words).length === 0 && !isLoading}
+            noResults={!!results && totalWords === 0 && !isLoading}
           />
-          <SearchResults words={words} totalWords={totalWords} />
+          <SearchResults results={results} totalWords={totalWords} />
         </div>
       </div>
     </div>
