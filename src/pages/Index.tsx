@@ -15,11 +15,8 @@ const Index = () => {
   const chunksRef = useRef<Blob[]>([]);
 
   const isCustomSyntax = (query: string): boolean => {
-    return false;
-  };
-
-  const processCustomSyntax = async (query: string) => {
-    throw new Error("Sintaxis especial aún no implementada");
+    // Si la consulta solo contiene letras (incluyendo ñ/Ñ), es una búsqueda de anagramas
+    return /^[A-Za-zÑñ]+$/.test(query);
   };
 
   const { data: words, isLoading, error, refetch } = useQuery({
@@ -28,10 +25,6 @@ const Index = () => {
       if (!query.trim()) return [];
       
       try {
-        if (isCustomSyntax(query)) {
-          return await processCustomSyntax(query);
-        }
-
         const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
           body: { query: query }
         });
@@ -43,7 +36,7 @@ const Index = () => {
 
         const { data, error } = await supabase
           .rpc('execute_natural_query', {
-            query_text: sqlData.sqlQuery
+            query_text: isCustomSyntax(query) ? query : sqlData.sqlQuery
           });
 
         if (error) throw error;

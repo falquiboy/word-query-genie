@@ -1,13 +1,15 @@
-import React from "react";
-
 const SearchHeader = () => {
   return (
-    <div className="text-center space-y-4">
-      <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/90 to-primary/60 animate-fade-in">
-        Búsqueda de Palabras
+    <div className="space-y-4 text-center">
+      <h1 className="text-4xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+        Buscador de Palabras
       </h1>
-      <p className="text-muted-foreground animate-fade-in delay-100">
-        Describe las palabras que buscas o usa el micrófono para dictar tu consulta
+      <p className="text-muted-foreground max-w-lg mx-auto">
+        Busca palabras usando lenguaje natural o sintaxis simple:
+        <br />
+        - Escribe "palabras con q sin e ni i" para búsqueda en lenguaje natural
+        <br />
+        - O simplemente escribe letras (ej: "casa") para encontrar anagramas
       </p>
     </div>
   );
