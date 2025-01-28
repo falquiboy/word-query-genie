@@ -309,6 +309,7 @@ export type Database = {
         }
         Returns: {
           word: string
+          is_exact: boolean
         }[]
       }
       get_words_batch: {

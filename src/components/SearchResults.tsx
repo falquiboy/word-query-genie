@@ -6,7 +6,7 @@ import { Copy } from "lucide-react";
 import SearchFeedback from "./SearchFeedback";
 
 interface SearchResultsProps {
-  words: { [key: string]: string[] } | null;
+  words: { [key: string]: { exact: string[], similar: string[] } } | null;
   totalWords: number;
   queryId?: string;
 }
@@ -21,8 +21,10 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
   const handleCopyResults = async () => {
     try {
       const textToCopy = entries
-        .map(([length, wordList]) => {
-          return `${length} letras (${wordList.length} palabras):\n${wordList.join("\n")}\n`;
+        .map(([length, { exact, similar }]) => {
+          const exactList = exact.length > 0 ? `Anagramas exactos:\n${exact.join("\n")}` : '';
+          const similarList = similar.length > 0 ? `\nAnagramas con una letra adicional:\n${similar.join("\n")}` : '';
+          return `${length} letras (${exact.length + similar.length} palabras):\n${exactList}${similarList}\n`;
         })
         .join("\n");
 
@@ -59,25 +61,48 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
       </div>
       
       <div className="space-y-6">
-        {entries.map(([length, wordList], index) => (
+        {entries.map(([length, { exact, similar }], index) => (
           <React.Fragment key={length}>
             <div className="border-t pt-4 first:border-t-0 first:pt-0">
               <h3 className="font-medium mb-3 text-muted-foreground">
-                {length} letras ({wordList.length} palabras):
+                {length} letras ({exact.length + similar.length} palabras):
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {wordList.map((word: string) => (
-                  <a
-                    key={word}
-                    href={`https://dle.rae.es/${word.toLowerCase()}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
-                  >
-                    {word}
-                  </a>
-                ))}
-              </div>
+              {exact.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm text-muted-foreground">Anagramas exactos:</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {exact.map((word: string) => (
+                      <a
+                        key={word}
+                        href={`https://dle.rae.es/${word.toLowerCase()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
+                      >
+                        {word}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {similar.length > 0 && (
+                <div className="space-y-3 mt-4">
+                  <h4 className="text-sm text-muted-foreground">Anagramas con una letra adicional:</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {similar.map((word: string) => (
+                      <a
+                        key={word}
+                        href={`https://dle.rae.es/${word.toLowerCase()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-secondary/30 hover:bg-secondary/60 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
+                      >
+                        {word}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             {(index + 1) % 3 === 0 && index < entries.length - 1 && (
               <AdUnit

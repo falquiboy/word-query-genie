@@ -70,15 +70,24 @@ const Index = () => {
 
         console.log('Resultados obtenidos:', data);
         
-        const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
+        // Agrupar los resultados por longitud y tipo (exacto o similar)
+        const groupedData = data ? data.reduce((acc: { [key: number]: { exact: string[], similar: string[] } }, curr: { word: string, is_exact: boolean }) => {
           const length = curr.word.length;
-          if (!acc[length]) acc[length] = [];
-          acc[length].push(curr.word);
+          if (!acc[length]) {
+            acc[length] = { exact: [], similar: [] };
+          }
+          if (curr.is_exact) {
+            acc[length].exact.push(curr.word);
+          } else {
+            acc[length].similar.push(curr.word);
+          }
           return acc;
         }, {}) : {};
 
-        Object.keys(groupedData).forEach(length => {
-          groupedData[Number(length)].sort();
+        // Ordenar las palabras dentro de cada grupo
+        Object.values(groupedData).forEach(group => {
+          group.exact.sort();
+          group.similar.sort();
         });
 
         return groupedData;
@@ -171,7 +180,8 @@ const Index = () => {
     }
   };
 
-  const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + wordList.length, 0) : 0;
+  const totalWords = words ? Object.values(words).reduce((total: number, { exact, similar }) => 
+    total + exact.length + similar.length, 0) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
