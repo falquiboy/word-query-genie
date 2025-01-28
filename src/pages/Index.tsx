@@ -11,11 +11,11 @@ const Index = () => {
   const [query, setQuery] = useState("");
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
-  const [currentQueryId, setCurrentQueryId] = useState<string | undefined>();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const isCustomSyntax = (query: string): boolean => {
+    // Si la consulta solo contiene letras (incluyendo ñ/Ñ), es una búsqueda de anagramas
     return /^[A-Za-zÑñ]+$/.test(query);
   };
 
@@ -39,21 +39,6 @@ const Index = () => {
           sqlQuery = sqlData.sqlQuery;
         }
 
-        // Guardar la consulta en el historial
-        const { data: historyData, error: historyError } = await supabase
-          .from('query_history')
-          .insert({
-            natural_query: query,
-            sql_query: sqlQuery,
-            successful: true
-          })
-          .select('id')
-          .single();
-
-        if (historyError) throw historyError;
-        
-        setCurrentQueryId(historyData.id);
-
         console.log('Ejecutando consulta:', sqlQuery);
         const { data, error } = await supabase
           .rpc('execute_natural_query', {
@@ -70,24 +55,15 @@ const Index = () => {
 
         console.log('Resultados obtenidos:', data);
         
-        // Agrupar los resultados por longitud y tipo (exacto o similar)
-        const groupedData = data ? data.reduce((acc: { [key: number]: { exact: string[], similar: string[] } }, curr: { word: string, is_exact: boolean }) => {
+        const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
           const length = curr.word.length;
-          if (!acc[length]) {
-            acc[length] = { exact: [], similar: [] };
-          }
-          if (curr.is_exact) {
-            acc[length].exact.push(curr.word);
-          } else {
-            acc[length].similar.push(curr.word);
-          }
+          if (!acc[length]) acc[length] = [];
+          acc[length].push(curr.word);
           return acc;
         }, {}) : {};
 
-        // Ordenar las palabras dentro de cada grupo
-        Object.values(groupedData).forEach(group => {
-          group.exact.sort();
-          group.similar.sort();
+        Object.keys(groupedData).forEach(length => {
+          groupedData[Number(length)].sort();
         });
 
         return groupedData;
@@ -180,8 +156,7 @@ const Index = () => {
     }
   };
 
-  const totalWords = words ? Object.values(words).reduce((total: number, { exact, similar }) => 
-    total + exact.length + similar.length, 0) : 0;
+  const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + wordList.length, 0) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
@@ -201,11 +176,7 @@ const Index = () => {
             error={error}
             noResults={!!words && Object.keys(words).length === 0 && !isLoading}
           />
-          <SearchResults 
-            words={words} 
-            totalWords={totalWords}
-            queryId={currentQueryId}
-          />
+          <SearchResults words={words} totalWords={totalWords} />
         </div>
       </div>
     </div>
