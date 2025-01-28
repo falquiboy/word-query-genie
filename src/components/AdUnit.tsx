@@ -26,7 +26,7 @@ const AdUnit = ({ slot, format = "auto", className = "" }: AdUnitProps) => {
       <ins
         className="adsbygoogle"
         style={{ display: "block" }}
-        data-ad-client="ca-pub-YOUR_CLIENT_ID" // Reemplazar con tu ID de cliente
+        data-ad-client="ca-pub-6198157256707928"
         data-ad-slot={slot}
         data-ad-format={format}
         data-full-width-responsive="true"
