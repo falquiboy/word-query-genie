@@ -19,7 +19,7 @@ const Index = () => {
   const { data: results, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query, mode],
     queryFn: async () => {
-      if (!query.trim()) return { exact: {}, plusOne: {}, shorter: {} };
+      if (!query.trim()) return { exact: {}, plusOne: {}, shorter: {} } as AnagramResults;
       
       try {
         if (mode === "natural") {
@@ -45,15 +45,15 @@ const Index = () => {
             throw error;
           }
 
-          const groupedData = data?.reduce((acc: Record<number, typeof data>, curr) => {
-            if (!curr || typeof curr.word !== 'string') return acc;
-            const length = curr.word.length;
-            if (!acc[length]) acc[length] = [];
-            acc[length].push({ word: curr.word, is_exact: true });
-            return acc;
-          }, {}) || {};
+          const groupedData: Record<string, WordResult[]> = {};
+          data?.forEach((item) => {
+            if (!item || typeof item.word !== 'string') return;
+            const length = item.word.length.toString();
+            if (!groupedData[length]) groupedData[length] = [];
+            groupedData[length].push({ word: item.word, is_exact: true });
+          });
 
-          return { exact: groupedData, plusOne: {}, shorter: {} };
+          return { exact: groupedData, plusOne: {}, shorter: {} } as AnagramResults;
         } else {
           const { data, error } = await supabase.rpc('find_word_variations', {
             input_text: query
@@ -76,7 +76,7 @@ const Index = () => {
           (data as WordVariation[])?.forEach((item) => {
             if (!item || typeof item.word !== 'string') return;
             
-            const length = item.word.length;
+            const length = item.word.length.toString();
             const targetGroup = 
               item.variation_type === 'exact' ? results.exact :
               item.variation_type === 'plus_one' ? results.plusOne :
