@@ -6,7 +6,7 @@ import SearchHeader from "@/components/SearchHeader";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import SearchStatus from "@/components/SearchStatus";
-import { AnagramResults, WordGroups } from "@/types/words";
+import { AnagramResults, WordGroups, WordResult } from "@/types/words";
 
 const Index = () => {
   const [query, setQuery] = useState("");
@@ -54,7 +54,6 @@ const Index = () => {
 
           return { exact: groupedData, plusOne: {}, shorter: {} };
         } else {
-          // Modo anagramas - usar las tres nuevas funciones
           const [exactData, plusOneData, shorterData] = await Promise.all([
             supabase.rpc('find_exact_anagrams', { query_text: query }),
             supabase.rpc('find_plus_one_letter', { query_text: query }),
@@ -65,14 +64,13 @@ const Index = () => {
           if (plusOneData.error) throw plusOneData.error;
           if (shorterData.error) throw shorterData.error;
 
-          const groupByLength = (words: { word: string }[] | { word: string, word_length: number }[]): WordGroups => {
-            return words.reduce((acc: WordGroups, curr: any) => {
-              // For shorter words, use word_length if available, otherwise use word.length
-              const length = curr.word_length || curr.word.length;
+          const groupByLength = (words: Array<{ word: string, word_length?: number }>) => {
+            return words.reduce((acc: WordGroups, curr) => {
+              const length = curr.word_length ?? curr.word.length;
               if (!acc[length]) acc[length] = [];
               acc[length].push({ word: curr.word, is_exact: true });
               return acc;
-            }, {});
+            }, {} as WordGroups);
           };
 
           return {
