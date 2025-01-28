@@ -17,6 +17,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== INICIO DE PROCESAMIENTO DE CONSULTA ===');
+    
     if (!OPENAI_API_KEY) {
       console.error('Error: OPENAI_API_KEY no está configurada');
       throw new Error('OPENAI_API_KEY no está configurada');
@@ -30,7 +32,7 @@ serve(async (req) => {
       throw new Error('No se proporcionó una consulta');
     }
 
-    console.log('Procesando consulta:', query);
+    console.log('Consulta recibida:', query);
 
     // Si la consulta solo contiene letras (incluyendo ñ/Ñ), es una búsqueda de anagramas
     if (query.match(/^[A-Za-zÑñ]+$/)) {
@@ -42,6 +44,7 @@ serve(async (req) => {
     }
 
     // Primero, buscar consultas similares en el historial
+    console.log('Buscando consulta en el historial...');
     const { data: historicalQueries, error: historyError } = await supabase
       .from('query_history')
       .select('*')
@@ -128,11 +131,13 @@ serve(async (req) => {
 
     // Validar la consulta SQL generada
     try {
+      console.log('Validando consulta SQL generada...');
       const { data: testData, error: testError } = await supabase.rpc('execute_natural_query', {
         query_text: sqlQuery
       });
 
       if (!testError) {
+        console.log('Consulta SQL validada exitosamente');
         // Guardar la consulta exitosa en el historial
         const { error: insertError } = await supabase
           .from('query_history')
@@ -144,8 +149,11 @@ serve(async (req) => {
 
         if (insertError) {
           console.error('Error al guardar la consulta en el historial:', insertError);
+        } else {
+          console.log('Consulta guardada en el historial');
         }
       } else {
+        console.error('Error al validar la consulta SQL:', testError);
         // Guardar el error en el historial
         const { error: insertError } = await supabase
           .from('query_history')
@@ -166,6 +174,7 @@ serve(async (req) => {
       throw error;
     }
 
+    console.log('=== FIN DE PROCESAMIENTO DE CONSULTA ===');
     return new Response(JSON.stringify({ sqlQuery }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
