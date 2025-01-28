@@ -1,5 +1,8 @@
 import React from "react";
 import AdUnit from "./AdUnit";
+import { Button } from "./ui/button";
+import { useToast } from "./ui/use-toast";
+import { Copy } from "lucide-react";
 
 interface SearchResultsProps {
   words: { [key: string]: string[] } | null;
@@ -7,14 +10,50 @@ interface SearchResultsProps {
 }
 
 const SearchResults = ({ words, totalWords }: SearchResultsProps) => {
+  const { toast } = useToast();
+
   if (!words || Object.keys(words).length === 0) return null;
 
   const entries = Object.entries(words).sort(([a], [b]) => Number(a) - Number(b));
 
+  const handleCopyResults = async () => {
+    try {
+      const textToCopy = entries
+        .map(([length, wordList]) => {
+          return `${length} letras (${wordList.length} palabras):\n${wordList.join(", ")}\n`;
+        })
+        .join("\n");
+
+      await navigator.clipboard.writeText(textToCopy);
+      
+      toast({
+        title: "¡Copiado!",
+        description: "La lista de palabras ha sido copiada al portapapeles",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo copiar al portapapeles",
+      });
+    }
+  };
+
   return (
     <div className="border rounded-xl p-6 bg-card/50 backdrop-blur-sm shadow-sm animate-fade-in">
-      <div className="text-lg font-semibold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-primary/90 to-primary/60">
-        Total de palabras encontradas: {totalWords}
+      <div className="flex items-center justify-between mb-6">
+        <div className="text-lg font-semibold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary/90 to-primary/60">
+          Total de palabras encontradas: {totalWords}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleCopyResults}
+        >
+          <Copy className="h-4 w-4" />
+          Copiar resultados
+        </Button>
       </div>
       <div className="space-y-6">
         {entries.map(([length, wordList], index) => (
