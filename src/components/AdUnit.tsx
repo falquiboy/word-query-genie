@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 interface AdUnitProps {
   slot: string;
@@ -13,13 +13,36 @@ declare global {
 }
 
 const AdUnit = ({ slot, format = "auto", className = "" }: AdUnitProps) => {
+  const [adError, setAdError] = useState<boolean>(false);
+
   useEffect(() => {
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (err) {
-      console.error("Error loading AdSense:", err);
-    }
-  }, []);
+    const loadAd = async () => {
+      try {
+        if (typeof window.adsbygoogle !== 'undefined') {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        }
+      } catch (err) {
+        console.error("Error loading AdSense:", err);
+        setAdError(true);
+      }
+    };
+
+    // Add error event listener for the ad iframe
+    const handleAdError = () => {
+      console.warn("Ad failed to load");
+      setAdError(true);
+    };
+
+    loadAd();
+
+    return () => {
+      // Cleanup if needed
+    };
+  }, [slot]);
+
+  if (adError) {
+    return null; // Don't render anything if there's an error
+  }
 
   return (
     <div className={`ad-container my-6 overflow-hidden ${className}`}>
