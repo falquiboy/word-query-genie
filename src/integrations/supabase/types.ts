@@ -311,6 +311,14 @@ export type Database = {
           word: string
         }[]
       }
+      execute_natural_search: {
+        Args: {
+          query_text: string
+        }
+        Returns: {
+          word: string
+        }[]
+      }
       get_words_batch: {
         Args: {
           batch_size: number

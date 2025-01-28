@@ -36,12 +36,12 @@ const Index = () => {
           console.log('Consulta SQL generada:', sqlData.sqlQuery);
 
           const { data, error } = await supabase
-            .rpc('execute_natural_search', {
+            .rpc('execute_natural_query', {
               query_text: sqlData.sqlQuery
             });
 
           if (error) {
-            console.error('Error en execute_natural_search:', error);
+            console.error('Error en execute_natural_query:', error);
             if (error.message?.includes('statement timeout')) {
               throw new Error('La consulta tardó demasiado tiempo. Por favor, intenta una búsqueda más específica.');
             }
