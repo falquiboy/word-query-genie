@@ -36,12 +36,12 @@ const Index = () => {
           console.log('Consulta SQL generada:', sqlData.sqlQuery);
 
           const { data, error } = await supabase
-            .rpc('execute_natural_query', {
+            .rpc('execute_natural_search', {
               query_text: sqlData.sqlQuery
             });
 
           if (error) {
-            console.error('Error en execute_natural_query:', error);
+            console.error('Error en execute_natural_search:', error);
             if (error.message?.includes('statement timeout')) {
               throw new Error('La consulta tardó demasiado tiempo. Por favor, intenta una búsqueda más específica.');
             }
@@ -63,9 +63,9 @@ const Index = () => {
 
           return groupedData;
         } else {
-          // Modo anagramas - usar la función original
+          // Modo anagramas - usar la nueva función find_anagrams
           const { data: anagramData, error: anagramError } = await supabase
-            .rpc('execute_natural_query', {
+            .rpc('find_anagrams', {
               query_text: query
             });
 

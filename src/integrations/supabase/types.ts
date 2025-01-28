@@ -303,7 +303,7 @@ export type Database = {
         }
         Returns: string
       }
-      execute_natural_query: {
+      execute_natural_search: {
         Args: {
           query_text: string
         }
@@ -311,7 +311,7 @@ export type Database = {
           word: string
         }[]
       }
-      execute_natural_search: {
+      find_anagrams: {
         Args: {
           query_text: string
         }
