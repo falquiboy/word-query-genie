@@ -74,10 +74,12 @@ serve(async (req) => {
             content: `Eres un experto en SQL que convierte consultas en lenguaje natural a consultas SQL válidas.
             Las consultas deben ser sobre la tabla 'words' que tiene una columna 'word' de tipo texto.
             SOLO debes devolver la consulta SQL, nada más.
-            Por ejemplo:
+            Ejemplos:
             - Para "palabras con q sin e ni i" deberías devolver: SELECT word FROM words WHERE word ILIKE '%q%' AND word NOT ILIKE '%e%' AND word NOT ILIKE '%i%'
             - Para "palabras que empiezan con a" deberías devolver: SELECT word FROM words WHERE word ILIKE 'a%'
             - Para "palabras de 5 letras" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 5
+            - Para "palabras que terminan en ción" deberías devolver: SELECT word FROM words WHERE word ILIKE '%ción'
+            - Para "palabras que contienen pre" deberías devolver: SELECT word FROM words WHERE word ILIKE '%pre%'
             NO incluyas explicaciones, SOLO la consulta SQL.`
           },
           {
@@ -86,7 +88,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.1,
-        max_tokens: 100
+        max_tokens: 150
       }),
     });
 
