@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Search, Loader2 } from "lucide-react";
 
 const Index = () => {
   const [query, setQuery] = useState("");
@@ -13,7 +13,6 @@ const Index = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  // Función para detectar el tipo de consulta
   const isCustomSyntax = (query: string): boolean => {
     // Por ahora retornamos false para mantener el comportamiento de lenguaje natural
     // Aquí implementaremos la detección de la sintaxis especial
@@ -33,12 +32,10 @@ const Index = () => {
       if (!query.trim()) return [];
       
       try {
-        // Detectamos el tipo de consulta
         if (isCustomSyntax(query)) {
           return await processCustomSyntax(query);
         }
 
-        // Si no es sintaxis especial, procedemos con el procesamiento de lenguaje natural
         const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
           body: { query: query }
         });
@@ -55,7 +52,6 @@ const Index = () => {
 
         if (error) throw error;
         
-        // Agrupar por longitud y ordenar alfabéticamente dentro de cada grupo
         const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
           const length = curr.word.length;
           if (!acc[length]) acc[length] = [];
@@ -63,7 +59,6 @@ const Index = () => {
           return acc;
         }, {}) : {};
 
-        // Ordenar cada grupo alfabéticamente
         Object.keys(groupedData).forEach(length => {
           groupedData[Number(length)].sort();
         });
@@ -157,77 +152,106 @@ const Index = () => {
     }
   };
 
-  // Calcular el total de palabras
   const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + wordList.length, 0) : 0;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold text-center mb-8">
-          Búsqueda de Palabras
-        </h1>
-        
-        <div className="flex gap-2">
-          <Input
-            placeholder="Describe las palabras que buscas (ej: palabras con q sin e ni i) o usa sintaxis especial"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1"
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={isRecording ? stopRecording : startRecording}
-            className={isRecording ? "bg-red-100 hover:bg-red-200" : ""}
-          >
-            {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </Button>
-          <Button onClick={handleSearch}>Buscar</Button>
-        </div>
-
-        {isLoading && (
-          <div className="text-center text-gray-500">Buscando palabras...</div>
-        )}
-
-        {error && (
-          <div className="text-center text-red-500">
-            Ocurrió un error al buscar las palabras.
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+              Búsqueda de Palabras
+            </h1>
+            <p className="text-muted-foreground">
+              Describe las palabras que buscas o usa sintaxis especial
+            </p>
           </div>
-        )}
-
-        {words && Object.keys(words).length > 0 && (
-          <div className="border rounded-lg p-4">
-            <div className="text-lg font-semibold mb-4 text-center">
-              Total de palabras encontradas: {totalWords}
+          
+          <div className="relative">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ej: palabras con q sin e ni i"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 h-12 text-lg"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={isRecording ? stopRecording : startRecording}
+                className={`h-12 w-12 transition-colors duration-200 ${
+                  isRecording ? "bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800" : ""
+                }`}
+              >
+                {isRecording ? 
+                  <MicOff className="h-5 w-5 text-red-500" /> : 
+                  <Mic className="h-5 w-5" />
+                }
+              </Button>
+              <Button 
+                onClick={handleSearch} 
+                className="h-12 px-6"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Search className="h-5 w-5 mr-2" />
+                    Buscar
+                  </>
+                )}
+              </Button>
             </div>
-            <h2 className="font-semibold mb-4">Resultados por longitud:</h2>
-            <div className="space-y-4">
-              {Object.entries(words)
-                .sort(([a], [b]) => Number(a) - Number(b))
-                .map(([length, wordList]) => (
-                  <div key={length} className="border-t pt-2 first:border-t-0 first:pt-0">
-                    <h3 className="font-medium mb-2">{length} letras ({wordList.length} palabras):</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {wordList.map((word: string) => (
-                        <div
-                          key={word}
-                          className="p-2 bg-secondary rounded-md text-center"
-                        >
-                          {word}
-                        </div>
-                      ))}
+          </div>
+
+          {isLoading && (
+            <div className="text-center text-muted-foreground animate-pulse">
+              Buscando palabras...
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center text-destructive bg-destructive/10 p-4 rounded-lg">
+              Ocurrió un error al buscar las palabras.
+            </div>
+          )}
+
+          {words && Object.keys(words).length > 0 && (
+            <div className="border rounded-xl p-6 bg-card shadow-sm animate-fade-in">
+              <div className="text-lg font-semibold mb-6 text-center">
+                Total de palabras encontradas: {totalWords}
+              </div>
+              <div className="space-y-6">
+                {Object.entries(words)
+                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .map(([length, wordList]) => (
+                    <div key={length} className="border-t pt-4 first:border-t-0 first:pt-0">
+                      <h3 className="font-medium mb-3 text-muted-foreground">
+                        {length} letras ({wordList.length} palabras):
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {wordList.map((word: string) => (
+                          <div
+                            key={word}
+                            className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200"
+                          >
+                            {word}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {words && Object.keys(words).length === 0 && !isLoading && (
-          <div className="text-center text-gray-500">
-            No se encontraron palabras con los criterios especificados.
-          </div>
-        )}
+          {words && Object.keys(words).length === 0 && !isLoading && (
+            <div className="text-center text-muted-foreground bg-secondary/50 p-6 rounded-xl">
+              No se encontraron palabras con los criterios especificados.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
