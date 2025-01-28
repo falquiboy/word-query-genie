@@ -7,6 +7,10 @@ import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import SearchStatus from "@/components/SearchStatus";
 
+interface WordGroups {
+  [key: string]: string[];
+}
+
 const Index = () => {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<"anagrams" | "natural">("anagrams");
@@ -15,7 +19,7 @@ const Index = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const { data: words, isLoading, error, refetch } = useQuery({
+  const { data: words, isLoading, error, refetch } = useQuery<WordGroups>({
     queryKey: ["words", query, mode],
     queryFn: async () => {
       if (!query.trim()) return {};
@@ -167,7 +171,7 @@ const Index = () => {
     }
   };
 
-  const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + (Array.isArray(wordList) ? wordList.length : 0), 0) : 0;
+  const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + wordList.length, 0) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
