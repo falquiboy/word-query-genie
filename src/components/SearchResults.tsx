@@ -25,12 +25,15 @@ const SearchResults = ({ words, totalWords }: SearchResultsProps) => {
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 {wordList.map((word: string) => (
-                  <div
+                  <a
                     key={word}
+                    href={`https://dle.rae.es/${word.toLowerCase()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
                   >
                     {word}
-                  </div>
+                  </a>
                 ))}
               </div>
             </div>
