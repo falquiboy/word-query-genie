@@ -80,6 +80,7 @@ serve(async (req) => {
             - Para "palabras de 5 letras" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 5
             - Para "palabras que terminan en ción" deberías devolver: SELECT word FROM words WHERE word ILIKE '%ción'
             - Para "palabras que contienen pre" deberías devolver: SELECT word FROM words WHERE word ILIKE '%pre%'
+            - Para "palabras que tienen bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
             NO incluyas explicaciones, SOLO la consulta SQL.`
           },
           {
