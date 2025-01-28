@@ -25,8 +25,6 @@ const Index = () => {
       if (!query.trim()) return {};
       
       try {
-        let sqlQuery = query;
-        
         if (mode === "natural") {
           const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
             body: { query: query }
@@ -36,52 +34,52 @@ const Index = () => {
           if (!sqlData?.sqlQuery) throw new Error('No se pudo generar la consulta SQL');
 
           console.log('Consulta SQL generada:', sqlData.sqlQuery);
-          sqlQuery = sqlData.sqlQuery;
-        } else {
-          // Modo anagramas
-          const { data: anagramData, error: anagramError } = await supabase.functions.invoke('anagrams', {
-            body: { query: query }
-          });
 
-          if (anagramError) throw anagramError;
-          if (!anagramData?.data) throw new Error('No se encontraron anagramas');
+          const { data, error } = await supabase
+            .rpc('execute_natural_search', {
+              query_text: sqlData.sqlQuery
+            });
 
-          return anagramData.data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
+          if (error) {
+            console.error('Error en execute_natural_search:', error);
+            if (error.message?.includes('statement timeout')) {
+              throw new Error('La consulta tardó demasiado tiempo. Por favor, intenta una búsqueda más específica.');
+            }
+            throw error;
+          }
+
+          console.log('Resultados obtenidos:', data);
+          
+          const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
             const length = curr.word.length;
             if (!acc[length]) acc[length] = [];
             acc[length].push(curr.word);
             return acc;
-          }, {});
-        }
+          }, {}) : {};
 
-        console.log('Ejecutando consulta:', sqlQuery);
-        const { data, error } = await supabase
-          .rpc('execute_natural_query', {
-            query_text: sqlQuery
+          Object.keys(groupedData).forEach(length => {
+            groupedData[Number(length)].sort();
           });
 
-        if (error) {
-          console.error('Error en execute_natural_query:', error);
-          if (error.message?.includes('statement timeout')) {
-            throw new Error('La consulta tardó demasiado tiempo. Por favor, intenta una búsqueda más específica.');
-          }
-          throw error;
+          return groupedData;
+        } else {
+          // Modo anagramas - usar la función original
+          const { data: anagramData, error: anagramError } = await supabase
+            .rpc('execute_natural_query', {
+              query_text: query
+            });
+
+          if (anagramError) throw anagramError;
+
+          const groupedData = anagramData ? anagramData.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
+            const length = curr.word.length;
+            if (!acc[length]) acc[length] = [];
+            acc[length].push(curr.word);
+            return acc;
+          }, {}) : {};
+
+          return groupedData;
         }
-
-        console.log('Resultados obtenidos:', data);
-        
-        const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
-          const length = curr.word.length;
-          if (!acc[length]) acc[length] = [];
-          acc[length].push(curr.word);
-          return acc;
-        }, {}) : {};
-
-        Object.keys(groupedData).forEach(length => {
-          groupedData[Number(length)].sort();
-        });
-
-        return groupedData;
       } catch (error: any) {
         console.error('Error detallado:', error);
         toast({
