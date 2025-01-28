@@ -111,8 +111,9 @@ serve(async (req) => {
     // Si la respuesta no comienza con SELECT, asumimos que son letras para anagramas
     if (!sqlQuery.toLowerCase().startsWith('select')) {
       // Limpiamos la cadena de caracteres no deseados y espacios
-      const letters = sqlQuery.replace(/[^A-Za-zÑñ]/g, '');
+      const letters = sqlQuery.replace(/[^A-Za-zÑñ]/g, '').toLowerCase();
       console.log('Letras extraídas para anagrama:', letters);
+      // Usamos la función custom_sort_chars para obtener el alphagram
       sqlQuery = `SELECT word FROM words WHERE alphagram = custom_sort_chars('${letters}')`;
     }
     
