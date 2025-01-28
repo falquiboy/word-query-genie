@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import AdUnit from "./AdUnit";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Copy } from "lucide-react";
 import SearchFeedback from "./SearchFeedback";
+import ShowShorterWordsToggle from "./ShowShorterWordsToggle";
 
 interface SearchResultsProps {
   words: { [key: string]: { exact: string[], similar: string[] } } | null;
@@ -13,10 +14,13 @@ interface SearchResultsProps {
 
 const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
   const { toast } = useToast();
+  const [showShorterWords, setShowShorterWords] = useState(false);
 
   if (!words || Object.keys(words).length === 0) return null;
 
-  const entries = Object.entries(words).sort(([a], [b]) => Number(a) - Number(b));
+  const entries = Object.entries(words)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .filter(([length, _]) => showShorterWords || length === Object.keys(words)[0]);
 
   const handleCopyResults = async () => {
     try {
@@ -43,21 +47,30 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
     }
   };
 
+  const filteredTotalWords = entries.reduce((total, [_, { exact, similar }]) => 
+    total + exact.length + similar.length, 0);
+
   return (
     <div className="border rounded-xl p-6 bg-card/50 backdrop-blur-sm shadow-sm animate-fade-in space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div className="text-lg font-semibold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary/90 to-primary/60">
-          Total de palabras encontradas: {totalWords}
+          Total de palabras encontradas: {filteredTotalWords}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleCopyResults}
-        >
-          <Copy className="h-4 w-4" />
-          Copiar resultados
-        </Button>
+        <div className="flex items-center gap-4">
+          <ShowShorterWordsToggle
+            showShorterWords={showShorterWords}
+            onToggle={setShowShorterWords}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleCopyResults}
+          >
+            <Copy className="h-4 w-4" />
+            Copiar resultados
+          </Button>
+        </div>
       </div>
       
       <div className="space-y-6">
