@@ -76,17 +76,17 @@ serve(async (req) => {
             SOLO debes devolver la consulta SQL, nada más.
             
             Ejemplos:
-            - Para "palabras con q sin e ni i" deberías devolver: SELECT word FROM words WHERE word ILIKE '%q%' AND word NOT ILIKE '%e%' AND word NOT ILIKE '%i%'
-            - Para "palabras que empiezan con a" deberías devolver: SELECT word FROM words WHERE word ILIKE 'a%'
-            - Para "palabras de 5 letras" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 5
-            - Para "palabras que terminan en ción" deberías devolver: SELECT word FROM words WHERE word ILIKE '%ción'
-            - Para "palabras que contienen pre" deberías devolver: SELECT word FROM words WHERE word ILIKE '%pre%'
-            - Para "palabras que tienen bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
-            - Para "contiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
-            - Para "tiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
-            - Para "palabras con z" deberías devolver: SELECT word FROM words WHERE word ILIKE '%z%'
-            - Para "palabras que empiezan con pre y terminan en ción" deberías devolver: SELECT word FROM words WHERE word ILIKE 'pre%' AND word ILIKE '%ción'
-            - Para "palabras de 4 letras que empiezan con a" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 4 AND word ILIKE 'a%'
+            - Para "palabras con q sin e ni i" deberías devolver: SELECT word FROM words WHERE word ILIKE '%q%' AND word NOT ILIKE '%e%' AND word NOT ILIKE '%i%' ORDER BY word
+            - Para "palabras que empiezan con a" deberías devolver: SELECT word FROM words WHERE word ILIKE 'a%' ORDER BY word
+            - Para "palabras de 5 letras" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 5 ORDER BY word
+            - Para "palabras que terminan en ción" deberías devolver: SELECT word FROM words WHERE word ILIKE '%ción' ORDER BY word
+            - Para "palabras que contienen pre" deberías devolver: SELECT word FROM words WHERE word ILIKE '%pre%' ORDER BY word
+            - Para "palabras que tienen bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%' ORDER BY word
+            - Para "contiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%' ORDER BY word
+            - Para "tiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%' ORDER BY word
+            - Para "palabras con z" deberías devolver: SELECT word FROM words WHERE word ILIKE '%z%' ORDER BY word
+            - Para "palabras que empiezan con pre y terminan en ción" deberías devolver: SELECT word FROM words WHERE word ILIKE 'pre%' AND word ILIKE '%ción' ORDER BY word
+            - Para "palabras de 4 letras que empiezan con a" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 4 AND word ILIKE 'a%' ORDER BY word
             
             Reglas importantes:
             1. SIEMPRE usa ILIKE para hacer las búsquedas case-insensitive
