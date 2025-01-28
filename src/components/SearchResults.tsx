@@ -30,7 +30,7 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
       const textToCopy = entries
         .map(([length, { exact, similar }]) => {
           const exactList = exact.length > 0 ? `Anagramas exactos:\n${exact.join("\n")}` : '';
-          const similarList = similar.length > 0 ? `\nAnagramas con una letra adicional:\n${similar.join("\n")}` : '';
+          const similarList = similar.length > 0 ? `\nPalabras con una letra adicional:\n${similar.join("\n")}` : '';
           return `${length} letras (${exact.length + similar.length} palabras):\n${exactList}${similarList}\n`;
         })
         .join("\n");
@@ -85,7 +85,9 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
               </h3>
               {exact.length > 0 && (
                 <div className="space-y-3">
-                  <h4 className="text-sm text-muted-foreground">Anagramas exactos:</h4>
+                  <h4 className="text-sm text-muted-foreground">
+                    {Number(length) === maxLength ? "Anagramas exactos:" : "Palabras formadas con estas letras:"}
+                  </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                     {exact.map((word: string) => (
                       <a
@@ -101,9 +103,9 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
                   </div>
                 </div>
               )}
-              {similar.length > 0 && (
+              {similar.length > 0 && Number(length) === maxLength + 1 && (
                 <div className="space-y-3 mt-4">
-                  <h4 className="text-sm text-muted-foreground">Anagramas con una letra adicional:</h4>
+                  <h4 className="text-sm text-muted-foreground">Palabras con una letra adicional:</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                     {similar.map((word: string) => (
                       <a
