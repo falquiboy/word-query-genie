@@ -59,6 +59,7 @@ serve(async (req) => {
       );
     }
 
+    console.log('Enviando consulta a OpenAI...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -83,6 +84,7 @@ serve(async (req) => {
             - Para "palabras que tienen bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
             - Para "contiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
             - Para "tiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
+            - Para "palabras con z" deberías devolver: SELECT word FROM words WHERE word ILIKE '%z%'
             
             Reglas importantes:
             1. SIEMPRE usa ILIKE para hacer las búsquedas case-insensitive
@@ -104,14 +106,14 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
+      const errorText = await response.text();
       console.error('Error de OpenAI. Status:', response.status);
-      console.error('Respuesta de error:', errorData);
+      console.error('Respuesta de error:', errorText);
       throw new Error(`Error al procesar la consulta con OpenAI. Status: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Respuesta de OpenAI:', JSON.stringify(data, null, 2));
+    console.log('Respuesta completa de OpenAI:', JSON.stringify(data, null, 2));
 
     if (!data.choices?.[0]?.message?.content) {
       console.error('Respuesta inválida de OpenAI:', JSON.stringify(data, null, 2));
@@ -128,6 +130,7 @@ serve(async (req) => {
       });
 
       if (!testError) {
+        // Guardar la consulta exitosa en el historial
         const { error: insertError } = await supabase
           .from('query_history')
           .insert({
@@ -140,6 +143,7 @@ serve(async (req) => {
           console.error('Error al guardar la consulta en el historial:', insertError);
         }
       } else {
+        // Guardar el error en el historial
         const { error: insertError } = await supabase
           .from('query_history')
           .insert({
