@@ -335,6 +335,15 @@ export type Database = {
           word: string
         }[]
       }
+      find_word_variations: {
+        Args: {
+          input_text: string
+        }
+        Returns: {
+          word: string
+          variation_type: string
+        }[]
+      }
       get_words_batch: {
         Args: {
           batch_size: number

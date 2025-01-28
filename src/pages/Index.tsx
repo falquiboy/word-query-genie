@@ -6,7 +6,7 @@ import SearchHeader from "@/components/SearchHeader";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import SearchStatus from "@/components/SearchStatus";
-import { AnagramResults, WordGroups, WordResult } from "@/types/words";
+import { AnagramResults, WordVariation } from "@/types/words";
 
 const Index = () => {
   const [query, setQuery] = useState("");
@@ -16,7 +16,7 @@ const Index = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const { data: results, isLoading, error, refetch } = useQuery<AnagramResults>({
+  const { data: results, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query, mode],
     queryFn: async () => {
       if (!query.trim()) return { exact: {}, plusOne: {}, shorter: {} };
@@ -45,7 +45,7 @@ const Index = () => {
             throw error;
           }
 
-          const groupedData = data ? data.reduce((acc: WordGroups, curr: { word: string }) => {
+          const groupedData = data ? data.reduce((acc: any, curr: { word: string }) => {
             const length = curr.word.length;
             if (!acc[length]) acc[length] = [];
             acc[length].push({ word: curr.word, is_exact: true });
@@ -54,30 +54,37 @@ const Index = () => {
 
           return { exact: groupedData, plusOne: {}, shorter: {} };
         } else {
-          const [exactData, plusOneData, shorterData] = await Promise.all([
-            supabase.rpc('find_exact_anagrams', { query_text: query }),
-            supabase.rpc('find_plus_one_letter', { query_text: query }),
-            supabase.rpc('find_shorter_words', { query_text: query })
-          ]);
+          const { data, error } = await supabase.rpc('find_word_variations', {
+            input_text: query
+          });
 
-          if (exactData.error) throw exactData.error;
-          if (plusOneData.error) throw plusOneData.error;
-          if (shorterData.error) throw shorterData.error;
+          if (error) throw error;
 
-          const groupByLength = (words: Array<{ word: string, word_length?: number }>) => {
-            return words.reduce((acc: WordGroups, curr) => {
-              const length = curr.word_length ?? curr.word.length;
-              if (!acc[length]) acc[length] = [];
-              acc[length].push({ word: curr.word, is_exact: true });
-              return acc;
-            }, {} as WordGroups);
+          // Agrupar los resultados por tipo y longitud
+          const results: AnagramResults = {
+            exact: {},
+            plusOne: {},
+            shorter: {}
           };
 
-          return {
-            exact: groupByLength(exactData.data || []),
-            plusOne: groupByLength(plusOneData.data || []),
-            shorter: groupByLength(shorterData.data || [])
-          };
+          data?.forEach((item: WordVariation) => {
+            const length = item.word.length;
+            const targetGroup = 
+              item.variation_type === 'exact' ? results.exact :
+              item.variation_type === 'plus_one' ? results.plusOne :
+              results.shorter;
+
+            if (!targetGroup[length]) {
+              targetGroup[length] = [];
+            }
+            
+            targetGroup[length].push({
+              word: item.word,
+              is_exact: item.variation_type === 'exact'
+            });
+          });
+
+          return results;
         }
       } catch (error: any) {
         console.error('Error detallado:', error);
