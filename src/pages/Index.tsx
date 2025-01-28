@@ -11,11 +11,11 @@ const Index = () => {
   const [query, setQuery] = useState("");
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
+  const [currentQueryId, setCurrentQueryId] = useState<string | undefined>();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const isCustomSyntax = (query: string): boolean => {
-    // Si la consulta solo contiene letras (incluyendo ñ/Ñ), es una búsqueda de anagramas
     return /^[A-Za-zÑñ]+$/.test(query);
   };
 
@@ -38,6 +38,21 @@ const Index = () => {
           console.log('Consulta SQL generada:', sqlData.sqlQuery);
           sqlQuery = sqlData.sqlQuery;
         }
+
+        // Guardar la consulta en el historial
+        const { data: historyData, error: historyError } = await supabase
+          .from('query_history')
+          .insert({
+            natural_query: query,
+            sql_query: sqlQuery,
+            successful: true
+          })
+          .select('id')
+          .single();
+
+        if (historyError) throw historyError;
+        
+        setCurrentQueryId(historyData.id);
 
         console.log('Ejecutando consulta:', sqlQuery);
         const { data, error } = await supabase
@@ -176,7 +191,11 @@ const Index = () => {
             error={error}
             noResults={!!words && Object.keys(words).length === 0 && !isLoading}
           />
-          <SearchResults words={words} totalWords={totalWords} />
+          <SearchResults 
+            words={words} 
+            totalWords={totalWords}
+            queryId={currentQueryId}
+          />
         </div>
       </div>
     </div>
