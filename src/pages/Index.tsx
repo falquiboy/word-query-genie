@@ -63,7 +63,7 @@ const Index = () => {
 
           return groupedData;
         } else {
-          // Modo anagramas - usar la nueva función find_anagrams
+          // Modo anagramas - usar la función find_anagrams
           const { data: anagramData, error: anagramError } = await supabase
             .rpc('find_anagrams', {
               query_text: query
