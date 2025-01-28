@@ -33,6 +33,15 @@ serve(async (req) => {
 
     console.log('Procesando consulta:', query);
 
+    // Si la consulta solo contiene letras (incluyendo ñ/Ñ), es una búsqueda de anagramas
+    if (query.match(/^[A-Za-zÑñ]+$/)) {
+      console.log('Detectada búsqueda de anagramas, retornando consulta directa');
+      return new Response(
+        JSON.stringify({ sqlQuery: query }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Primero, buscar consultas similares en el historial
     const { data: historicalQueries, error: historyError } = await supabase
       .from('query_history')
