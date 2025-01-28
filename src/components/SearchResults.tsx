@@ -29,9 +29,9 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
     try {
       const textToCopy = entries
         .map(([length, { exact, similar }]) => {
-          const exactList = exact.length > 0 ? `Anagramas exactos:\n${exact.join("\n")}` : '';
-          const similarList = similar.length > 0 ? `\nPalabras con una letra adicional:\n${similar.join("\n")}` : '';
-          return `${length} letras (${exact.length + similar.length} palabras):\n${exactList}${similarList}\n`;
+          const similarList = similar.length > 0 ? `Palabras con una letra adicional:\n${similar.join("\n")}` : '';
+          const exactList = exact.length > 0 ? `\nAnagramas exactos:\n${exact.join("\n")}` : '';
+          return `${length} letras (${exact.length + similar.length} palabras):\n${similarList}${exactList}\n`;
         })
         .join("\n");
 
@@ -83,8 +83,26 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
               <h3 className="font-medium mb-3 text-muted-foreground">
                 {length} letras ({exact.length + similar.length} palabras):
               </h3>
-              {exact.length > 0 && (
+              {similar.length > 0 && Number(length) === maxLength + 1 && (
                 <div className="space-y-3">
+                  <h4 className="text-sm text-muted-foreground">Palabras con una letra adicional:</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {similar.map((word: string) => (
+                      <a
+                        key={word}
+                        href={`https://dle.rae.es/${word.toLowerCase()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-secondary/30 hover:bg-secondary/60 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
+                      >
+                        {word}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {exact.length > 0 && (
+                <div className="space-y-3 mt-4">
                   <h4 className="text-sm text-muted-foreground">
                     {Number(length) === maxLength ? "Anagramas exactos:" : "Palabras formadas con estas letras:"}
                   </h4>
@@ -96,24 +114,6 @@ const SearchResults = ({ words, totalWords, queryId }: SearchResultsProps) => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
-                      >
-                        {word}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {similar.length > 0 && Number(length) === maxLength + 1 && (
-                <div className="space-y-3 mt-4">
-                  <h4 className="text-sm text-muted-foreground">Palabras con una letra adicional:</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {similar.map((word: string) => (
-                      <a
-                        key={word}
-                        href={`https://dle.rae.es/${word.toLowerCase()}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-secondary/30 hover:bg-secondary/60 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
                       >
                         {word}
                       </a>
