@@ -12,7 +12,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -74,6 +73,7 @@ serve(async (req) => {
             content: `Eres un experto en SQL que convierte consultas en lenguaje natural a consultas SQL válidas.
             Las consultas deben ser sobre la tabla 'words' que tiene una columna 'word' de tipo texto.
             SOLO debes devolver la consulta SQL, nada más.
+            
             Ejemplos:
             - Para "palabras con q sin e ni i" deberías devolver: SELECT word FROM words WHERE word ILIKE '%q%' AND word NOT ILIKE '%e%' AND word NOT ILIKE '%i%'
             - Para "palabras que empiezan con a" deberías devolver: SELECT word FROM words WHERE word ILIKE 'a%'
@@ -81,7 +81,17 @@ serve(async (req) => {
             - Para "palabras que terminan en ción" deberías devolver: SELECT word FROM words WHERE word ILIKE '%ción'
             - Para "palabras que contienen pre" deberías devolver: SELECT word FROM words WHERE word ILIKE '%pre%'
             - Para "palabras que tienen bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
-            NO incluyas explicaciones, SOLO la consulta SQL.`
+            - Para "contiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
+            - Para "tiene bt" deberías devolver: SELECT word FROM words WHERE word ILIKE '%bt%'
+            
+            Reglas importantes:
+            1. SIEMPRE usa ILIKE para hacer las búsquedas case-insensitive
+            2. NUNCA uses LIKE, siempre ILIKE
+            3. Para búsquedas de contenido usa %texto%
+            4. Para búsquedas de inicio usa texto%
+            5. Para búsquedas de final usa %texto
+            6. NO incluyas explicaciones, SOLO la consulta SQL.
+            7. SIEMPRE incluye la palabra completa en el SELECT: SELECT word`
           },
           {
             role: 'user',
@@ -117,7 +127,6 @@ serve(async (req) => {
         query_text: sqlQuery
       });
 
-      // Si la consulta es exitosa, guardarla en el historial
       if (!testError) {
         const { error: insertError } = await supabase
           .from('query_history')
@@ -131,7 +140,6 @@ serve(async (req) => {
           console.error('Error al guardar la consulta en el historial:', insertError);
         }
       } else {
-        // Si hay error en la consulta, guardarlo en el historial
         const { error: insertError } = await supabase
           .from('query_history')
           .insert({
