@@ -7,8 +7,13 @@ import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import SearchStatus from "@/components/SearchStatus";
 
+interface WordResult {
+  word: string;
+  is_exact: boolean;
+}
+
 interface WordGroups {
-  [key: string]: string[];
+  [key: string]: WordResult[];
 }
 
 const Index = () => {
@@ -50,15 +55,15 @@ const Index = () => {
 
           console.log('Resultados obtenidos:', data);
           
-          const groupedData = data ? data.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
+          const groupedData = data ? data.reduce((acc: { [key: number]: WordResult[] }, curr: { word: string }) => {
             const length = curr.word.length;
             if (!acc[length]) acc[length] = [];
-            acc[length].push(curr.word);
+            acc[length].push({ word: curr.word, is_exact: true });
             return acc;
           }, {}) : {};
 
           Object.keys(groupedData).forEach(length => {
-            groupedData[Number(length)].sort();
+            groupedData[Number(length)].sort((a, b) => a.word.localeCompare(b.word));
           });
 
           return groupedData;
@@ -71,12 +76,21 @@ const Index = () => {
 
           if (anagramError) throw anagramError;
 
-          const groupedData = anagramData ? anagramData.reduce((acc: { [key: number]: string[] }, curr: { word: string }) => {
+          const groupedData = anagramData ? anagramData.reduce((acc: { [key: number]: WordResult[] }, curr: { word: string, is_exact: boolean }) => {
             const length = curr.word.length;
             if (!acc[length]) acc[length] = [];
-            acc[length].push(curr.word);
+            acc[length].push(curr);
             return acc;
           }, {}) : {};
+
+          Object.keys(groupedData).forEach(length => {
+            groupedData[Number(length)].sort((a, b) => {
+              // Primero ordenar por is_exact (true primero)
+              if (a.is_exact !== b.is_exact) return b.is_exact ? 1 : -1;
+              // Luego ordenar alfabéticamente
+              return a.word.localeCompare(b.word);
+            });
+          });
 
           return groupedData;
         }
@@ -169,7 +183,7 @@ const Index = () => {
     }
   };
 
-  const totalWords = words ? Object.values(words).reduce((total: number, wordList: string[]) => total + wordList.length, 0) : 0;
+  const totalWords = words ? Object.values(words).reduce((total: number, wordList: WordResult[]) => total + wordList.length, 0) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">

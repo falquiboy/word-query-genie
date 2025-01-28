@@ -5,7 +5,7 @@ import { useToast } from "./ui/use-toast";
 import { Copy } from "lucide-react";
 
 interface SearchResultsProps {
-  words: { [key: string]: string[] } | null;
+  words: { [key: string]: { word: string; is_exact: boolean }[] } | null;
   totalWords: number;
 }
 
@@ -20,9 +20,22 @@ const SearchResults = ({ words, totalWords }: SearchResultsProps) => {
     try {
       const textToCopy = entries
         .map(([length, wordList]) => {
-          return `${length} letras (${wordList.length} palabras):\n${wordList.join("\n")}\n`;
+          const exactMatches = wordList.filter(w => w.is_exact);
+          const nonExactMatches = wordList.filter(w => !w.is_exact);
+          
+          let text = `${length} letras (${wordList.length} palabras):\n`;
+          
+          if (exactMatches.length > 0) {
+            text += "Anagramas exactos:\n" + exactMatches.map(w => w.word).join("\n") + "\n";
+          }
+          
+          if (nonExactMatches.length > 0) {
+            text += "Palabras relacionadas:\n" + nonExactMatches.map(w => w.word).join("\n");
+          }
+          
+          return text;
         })
-        .join("\n");
+        .join("\n\n");
 
       await navigator.clipboard.writeText(textToCopy);
       
@@ -56,35 +69,63 @@ const SearchResults = ({ words, totalWords }: SearchResultsProps) => {
         </Button>
       </div>
       <div className="space-y-6">
-        {entries.map(([length, wordList], index) => (
-          <React.Fragment key={length}>
-            <div className="border-t pt-4 first:border-t-0 first:pt-0">
-              <h3 className="font-medium mb-3 text-muted-foreground">
-                {length} letras ({wordList.length} palabras):
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {wordList.map((word: string) => (
-                  <a
-                    key={word}
-                    href={`https://dle.rae.es/${word.toLowerCase()}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
-                  >
-                    {word}
-                  </a>
-                ))}
+        {entries.map(([length, wordList], index) => {
+          const exactMatches = wordList.filter(w => w.is_exact);
+          const nonExactMatches = wordList.filter(w => !w.is_exact);
+
+          return (
+            <React.Fragment key={length}>
+              <div className="border-t pt-4 first:border-t-0 first:pt-0">
+                <h3 className="font-medium mb-3 text-muted-foreground">
+                  {length} letras ({wordList.length} palabras):
+                </h3>
+                {exactMatches.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-muted-foreground">Anagramas exactos:</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {exactMatches.map((item) => (
+                        <a
+                          key={item.word}
+                          href={`https://dle.rae.es/${item.word.toLowerCase()}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
+                        >
+                          {item.word}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {nonExactMatches.length > 0 && (
+                  <div className="space-y-3 mt-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">Palabras relacionadas:</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {nonExactMatches.map((item) => (
+                        <a
+                          key={item.word}
+                          href={`https://dle.rae.es/${item.word.toLowerCase()}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-secondary/30 hover:bg-secondary/60 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
+                        >
+                          {item.word}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-            {/* Insertar anuncio cada 3 grupos de palabras */}
-            {(index + 1) % 3 === 0 && index < entries.length - 1 && (
-              <AdUnit
-                slot="1234567890" // Reemplazar con tu slot ID real
-                className="animate-fade-in"
-              />
-            )}
-          </React.Fragment>
-        ))}
+              {/* Insertar anuncio cada 3 grupos de palabras */}
+              {(index + 1) % 3 === 0 && index < entries.length - 1 && (
+                <AdUnit
+                  slot="1234567890" // Reemplazar con tu slot ID real
+                  className="animate-fade-in"
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   );
