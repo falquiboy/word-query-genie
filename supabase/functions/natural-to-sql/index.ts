@@ -12,7 +12,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -58,18 +57,27 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
             content: `Eres un experto en SQL que convierte consultas en lenguaje natural a consultas SQL válidas.
             Las consultas deben ser sobre la tabla 'words' que tiene una columna 'word' de tipo texto.
-            SOLO debes devolver la consulta SQL, nada más.
+            
+            Si la consulta está relacionada con anagramas o formación de palabras con letras específicas,
+            DEBES extraer solo las letras relevantes y devolverlas como una cadena simple.
             Por ejemplo:
-            - Para "palabras con q sin e ni i" deberías devolver: SELECT word FROM words WHERE word ILIKE '%q%' AND word NOT ILIKE '%e%' AND word NOT ILIKE '%i%'
-            - Para "palabras que empiezan con a" deberías devolver: SELECT word FROM words WHERE word ILIKE 'a%'
-            - Para "palabras de 5 letras" deberías devolver: SELECT word FROM words WHERE LENGTH(word) = 5
-            NO incluyas explicaciones, SOLO la consulta SQL.`
+            - "anagramas de ratones" -> "ratones"
+            - "palabras que puedo formar con las letras casa" -> "casa"
+            - "qué palabras se pueden hacer con estas letras: m e s a" -> "mesa"
+            
+            Para otros tipos de consultas, genera una consulta SQL normal.
+            Por ejemplo:
+            - "palabras con q sin e ni i" -> SELECT word FROM words WHERE word ILIKE '%q%' AND word NOT ILIKE '%e%' AND word NOT ILIKE '%i%'
+            - "palabras que empiezan con a" -> SELECT word FROM words WHERE word ILIKE 'a%'
+            - "palabras de 5 letras" -> SELECT word FROM words WHERE LENGTH(word) = 5
+            
+            NO incluyas explicaciones, SOLO la consulta SQL o las letras extraídas.`
           },
           {
             role: 'user',
@@ -96,7 +104,16 @@ serve(async (req) => {
       throw new Error('Respuesta inválida de OpenAI');
     }
 
-    const sqlQuery = data.choices[0].message.content.trim();
+    let sqlQuery = data.choices[0].message.content.trim();
+    
+    // Si la respuesta no comienza con SELECT, asumimos que son letras para anagramas
+    if (!sqlQuery.toLowerCase().startsWith('select')) {
+      // Limpiamos la cadena de caracteres no deseados y espacios
+      const letters = sqlQuery.replace(/[^A-Za-zÑñ]/g, '');
+      console.log('Letras extraídas para anagrama:', letters);
+      sqlQuery = `SELECT word FROM words WHERE alphagram = custom_sort_chars('${letters}')`;
+    }
+    
     console.log('SQL generado:', sqlQuery);
 
     // Validar la consulta SQL generada
