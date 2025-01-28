@@ -10,6 +10,7 @@ interface SearchBarProps {
   isLoading: boolean;
   onSearch: () => void;
   onToggleRecording: () => void;
+  mode: "anagrams" | "natural";
 }
 
 const SearchBar = ({
@@ -19,12 +20,17 @@ const SearchBar = ({
   isLoading,
   onSearch,
   onToggleRecording,
+  mode,
 }: SearchBarProps) => {
+  const placeholder = mode === "anagrams" 
+    ? "Ej: casa" 
+    : "Ej: palabras con q sin e ni i";
+
   return (
     <div className="relative animate-fade-in delay-200">
       <div className="flex gap-2">
         <Input
-          placeholder="Ej: palabras con q sin e ni i"
+          placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1 h-12 text-lg shadow-sm"

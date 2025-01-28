@@ -9,6 +9,7 @@ import SearchStatus from "@/components/SearchStatus";
 
 const Index = () => {
   const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<"anagrams" | "natural">("anagrams");
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -20,14 +21,14 @@ const Index = () => {
   };
 
   const { data: words, isLoading, error, refetch } = useQuery({
-    queryKey: ["words", query],
+    queryKey: ["words", query, mode],
     queryFn: async () => {
       if (!query.trim()) return {};
       
       try {
         let sqlQuery = query;
         
-        if (!isCustomSyntax(query)) {
+        if (mode === "natural") {
           const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
             body: { query: query }
           });
@@ -162,7 +163,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto space-y-8">
-          <SearchHeader />
+          <SearchHeader mode={mode} onModeChange={setMode} />
           <SearchBar
             query={query}
             setQuery={setQuery}
@@ -170,6 +171,7 @@ const Index = () => {
             isLoading={isLoading}
             onSearch={handleSearch}
             onToggleRecording={isRecording ? stopRecording : startRecording}
+            mode={mode}
           />
           <SearchStatus
             isLoading={isLoading}
