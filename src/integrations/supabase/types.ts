@@ -351,6 +351,7 @@ export type Database = {
         Returns: {
           word: string
           variation_type: string
+          wildcard_positions: number[]
         }[]
       }
       get_spanish_alphabet: {
