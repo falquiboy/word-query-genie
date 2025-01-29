@@ -24,19 +24,17 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
           <h4 className="text-sm font-medium text-muted-foreground">
             {length} letras ({wordList.length} palabras):
           </h4>
-          <div className="text-sm leading-relaxed">
-            {wordList.map((item, index) => (
-              <React.Fragment key={item.word}>
-                <a
-                  href={`https://dle.rae.es/${item.word.toLowerCase()}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors duration-200"
-                >
-                  {item.word}
-                </a>
-                {index < wordList.length - 1 && ", "}
-              </React.Fragment>
+          <div className="text-sm leading-relaxed flex flex-wrap gap-2">
+            {wordList.map((item) => (
+              <a
+                key={item.word}
+                href={`https://dle.rae.es/${item.word.toLowerCase()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary transition-colors duration-200"
+              >
+                {item.word}
+              </a>
             ))}
           </div>
         </div>
@@ -62,7 +60,7 @@ const SearchResults = ({ results, totalWords, showShorter, mode }: SearchResults
         .sort(([a], [b]) => Number(b) - Number(a))
         .map(([length, wordList]) => 
           `${length} letras (${wordList.length} palabras):\n${
-            wordList.map(w => w.word).join(", ")
+            wordList.map(w => w.word).join(" ")
           }`
         )
         .join("\n\n");
