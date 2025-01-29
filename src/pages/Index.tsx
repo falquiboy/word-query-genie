@@ -6,7 +6,7 @@ import SearchHeader from "@/components/SearchHeader";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import SearchStatus from "@/components/SearchStatus";
-import { AnagramResults, WordVariation, WordResult } from "@/types/words";
+import { AnagramResults, WordVariation } from "@/types/words";
 
 const Index = () => {
   const [query, setQuery] = useState("");
@@ -23,13 +23,18 @@ const Index = () => {
       if (!query.trim()) return { exact: {}, plusOne: {}, shorter: {} } as AnagramResults;
       
       try {
+        console.log('Iniciando búsqueda con modo:', mode, 'y query:', query);
+        
         // Modo de lenguaje natural
         if (mode === "natural") {
           const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
             body: { query: query }
           });
 
-          if (sqlError) throw sqlError;
+          if (sqlError) {
+            console.error('Error en natural-to-sql:', sqlError);
+            throw sqlError;
+          }
           if (!sqlData?.sqlQuery) throw new Error('No se pudo generar la consulta SQL');
 
           console.log('Consulta SQL generada:', sqlData.sqlQuery);
@@ -59,17 +64,17 @@ const Index = () => {
         } 
         // Modo de anagramas
         else {
+          console.log('Ejecutando find_word_variations con:', query);
           const { data, error } = await supabase.rpc('find_word_variations', {
             input_text: query
           });
 
           if (error) {
             console.error('Error en find_word_variations:', error);
-            if (error.message?.includes('statement timeout')) {
-              throw new Error('La consulta tardó demasiado tiempo. Por favor, intenta una búsqueda más específica.');
-            }
             throw error;
           }
+
+          console.log('Resultados recibidos:', data);
 
           const results: AnagramResults = {
             exact: {},
@@ -97,14 +102,16 @@ const Index = () => {
             });
           });
 
+          console.log('Resultados procesados:', results);
           return results;
         }
       } catch (error: any) {
         console.error('Error detallado:', error);
+        const errorMessage = error.message || "No se pudo ejecutar la consulta. Por favor, inténtalo de nuevo.";
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message || "No se pudo ejecutar la consulta. Por favor, inténtalo de nuevo.",
+          description: errorMessage,
         });
         throw error;
       }
@@ -211,7 +218,7 @@ const Index = () => {
             mode={mode}
             showShorter={showShorter}
             onShowShorterChange={setShowShorter}
-            hasShorterWords={results && Object.keys(results.shorter).length > 0}
+            hasShorterWords={hasShorterWords}
           />
           <SearchStatus
             isLoading={isLoading}

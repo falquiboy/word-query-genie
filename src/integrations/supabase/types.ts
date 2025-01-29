@@ -68,7 +68,7 @@ export type Database = {
             columns: ["root_word", "alphagram", "lenght"]
             isOneToOne: false
             referencedRelation: "words"
-            referencedColumns: ["word", "alphagram", "lenght"]
+            referencedColumns: ["word", "alphagram", "length"]
           },
         ]
       }
@@ -277,17 +277,17 @@ export type Database = {
       words: {
         Row: {
           alphagram: string | null
-          lenght: number | null
+          length: number | null
           word: string | null
         }
         Insert: {
           alphagram?: string | null
-          lenght?: number | null
+          length?: number | null
           word?: string | null
         }
         Update: {
           alphagram?: string | null
-          lenght?: number | null
+          length?: number | null
           word?: string | null
         }
         Relationships: []
@@ -351,7 +351,7 @@ export type Database = {
         Returns: {
           word: string
           variation_type: string
-          wildcard_positions: number[]
+          wildcards_used: number
         }[]
       }
       get_spanish_alphabet: {
