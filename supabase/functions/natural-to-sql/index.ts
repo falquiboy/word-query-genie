@@ -129,7 +129,7 @@ serve(async (req) => {
     // Validar la consulta SQL generada
     try {
       console.log('Validando consulta SQL generada...');
-      const { data: testData, error: testError } = await supabase.rpc('execute_natural_query', {
+      const { data: testData, error: testError } = await supabase.rpc('execute_natural_search', {
         query_text: sqlQuery
       });
 
