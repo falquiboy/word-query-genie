@@ -87,12 +87,8 @@ const SearchResults = ({ results, totalWords, showShorter, mode }: SearchResults
 
       const textToCopy = Object.entries(activeResults)
         .sort(([a], [b]) => Number(b) - Number(a))
-        .map(([length, wordList]) => 
-          `${length} letras (${wordList.length} palabras):\n${
-            wordList.map(w => w.word).join(" ")
-          }`
-        )
-        .join("\n\n");
+        .flatMap(([_, wordList]) => wordList.map(w => w.word))
+        .join('\n');
 
       await navigator.clipboard.writeText(textToCopy);
       
