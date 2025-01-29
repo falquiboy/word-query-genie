@@ -18,28 +18,16 @@ const Index = () => {
   const chunksRef = useRef<Blob[]>([]);
 
   const processQuery = (inputQuery: string): string => {
-    // Si la consulta no tiene comodín, intentamos encontrar la mejor posición
     if (!inputQuery.includes('*') && mode === "anagrams") {
+      // Optimización: si la palabra es muy larga, colocamos el comodín al principio
+      if (inputQuery.length > 7) {
+        return '*' + inputQuery;
+      }
+      
       const letters = inputQuery.split('');
-      let bestPosition = -1;
-      let maxPossibilities = 0;
-
-      // Probamos cada posición para el comodín
-      for (let i = 0; i <= letters.length; i++) {
-        const testQuery = [...letters.slice(0, i), '*', ...letters.slice(i)].join('');
-        // Aquí podrías implementar una lógica más sofisticada para determinar
-        // la mejor posición basada en el alfabeto español y patrones comunes
-        const possibilities = testQuery.length;
-        if (possibilities > maxPossibilities) {
-          maxPossibilities = possibilities;
-          bestPosition = i;
-        }
-      }
-
-      // Si encontramos una buena posición, insertamos el comodín
-      if (bestPosition >= 0) {
-        return [...letters.slice(0, bestPosition), '*', ...letters.slice(bestPosition)].join('');
-      }
+      // Para palabras más cortas, intentamos una posición óptima
+      const bestPosition = Math.floor(letters.length / 2);
+      return [...letters.slice(0, bestPosition), '*', ...letters.slice(bestPosition)].join('');
     }
     return inputQuery;
   };
@@ -93,12 +81,23 @@ const Index = () => {
         else {
           const processedQuery = processQuery(query);
           console.log('Ejecutando find_word_variations con:', processedQuery);
-          const { data, error } = await supabase.rpc('find_word_variations', {
+          
+          // Agregamos un timeout de 20 segundos
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('La búsqueda está tomando demasiado tiempo. Por favor, intenta una consulta más específica.')), 20000);
+          });
+
+          const queryPromise = supabase.rpc('find_word_variations', {
             input_text: processedQuery
           });
 
+          const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
           if (error) {
             console.error('Error en find_word_variations:', error);
+            if (error.message?.includes('timeout')) {
+              throw new Error('La búsqueda está tomando demasiado tiempo. Por favor, intenta una consulta más específica.');
+            }
             throw error;
           }
 
