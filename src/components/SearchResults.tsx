@@ -11,6 +11,20 @@ interface SearchResultsProps {
   mode: "anagrams" | "natural";
 }
 
+const findAdditionalLetter = (word: string, baseWord: string): number => {
+  const wordChars = word.split('');
+  const baseChars = baseWord.split('');
+  
+  for (let i = 0; i < wordChars.length; i++) {
+    const tempWord = [...wordChars];
+    tempWord.splice(i, 1);
+    if (tempWord.sort().join('') === baseChars.sort().join('')) {
+      return i;
+    }
+  }
+  return -1;
+};
+
 const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mode: "anagrams" | "natural" }) => {
   if (!words || Object.keys(words).length === 0) return null;
 
@@ -25,17 +39,31 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
             {length} letras ({wordList.length} palabras):
           </h4>
           <div className="text-sm leading-relaxed flex flex-wrap gap-2">
-            {wordList.map((item) => (
-              <a
-                key={item.word}
-                href={`https://dle.rae.es/${item.word.toLowerCase()}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-primary transition-colors duration-200"
-              >
-                {item.word}
-              </a>
-            ))}
+            {wordList.map((item) => {
+              const additionalLetterIndex = title === "Palabras con una letra adicional" ? findAdditionalLetter(item.word, item.word.slice(0, -1)) : -1;
+              
+              return (
+                <a
+                  key={item.word}
+                  href={`https://dle.rae.es/${item.word.toLowerCase()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors duration-200"
+                >
+                  {additionalLetterIndex >= 0 ? (
+                    <>
+                      {item.word.slice(0, additionalLetterIndex)}
+                      <span className="text-primary font-semibold">
+                        {item.word[additionalLetterIndex]}
+                      </span>
+                      {item.word.slice(additionalLetterIndex + 1)}
+                    </>
+                  ) : (
+                    item.word
+                  )}
+                </a>
+              );
+            })}
           </div>
         </div>
       ))}
