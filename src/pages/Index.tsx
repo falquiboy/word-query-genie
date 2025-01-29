@@ -17,6 +17,33 @@ const Index = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  const processQuery = (inputQuery: string): string => {
+    // Si la consulta no tiene comodín, intentamos encontrar la mejor posición
+    if (!inputQuery.includes('*') && mode === "anagrams") {
+      const letters = inputQuery.split('');
+      let bestPosition = -1;
+      let maxPossibilities = 0;
+
+      // Probamos cada posición para el comodín
+      for (let i = 0; i <= letters.length; i++) {
+        const testQuery = [...letters.slice(0, i), '*', ...letters.slice(i)].join('');
+        // Aquí podrías implementar una lógica más sofisticada para determinar
+        // la mejor posición basada en el alfabeto español y patrones comunes
+        const possibilities = testQuery.length;
+        if (possibilities > maxPossibilities) {
+          maxPossibilities = possibilities;
+          bestPosition = i;
+        }
+      }
+
+      // Si encontramos una buena posición, insertamos el comodín
+      if (bestPosition >= 0) {
+        return [...letters.slice(0, bestPosition), '*', ...letters.slice(bestPosition)].join('');
+      }
+    }
+    return inputQuery;
+  };
+
   const { data: results, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query, mode],
     queryFn: async () => {
@@ -64,9 +91,10 @@ const Index = () => {
         } 
         // Modo de anagramas
         else {
-          console.log('Ejecutando find_word_variations con:', query);
+          const processedQuery = processQuery(query);
+          console.log('Ejecutando find_word_variations con:', processedQuery);
           const { data, error } = await supabase.rpc('find_word_variations', {
-            input_text: query
+            input_text: processedQuery
           });
 
           if (error) {
@@ -213,7 +241,7 @@ const Index = () => {
             setQuery={setQuery}
             isRecording={isRecording}
             isLoading={isLoading}
-            onSearch={handleSearch}
+            onSearch={refetch}
             onToggleRecording={isRecording ? stopRecording : startRecording}
             mode={mode}
             showShorter={showShorter}
