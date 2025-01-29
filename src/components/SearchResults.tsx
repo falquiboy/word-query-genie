@@ -41,6 +41,10 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
           <div className="text-sm leading-relaxed flex flex-wrap gap-2">
             {wordList.map((item) => {
               const additionalLetterIndex = title === "Palabras con una letra adicional" ? findAdditionalLetter(item.word, item.word.slice(0, -1)) : -1;
+              const highlightPositions = item.wildcard_positions || [];
+              if (additionalLetterIndex >= 0) {
+                highlightPositions.push(additionalLetterIndex);
+              }
               
               return (
                 <a
@@ -50,17 +54,14 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors duration-200"
                 >
-                  {additionalLetterIndex >= 0 ? (
-                    <>
-                      {item.word.slice(0, additionalLetterIndex)}
-                      <span className="text-destructive font-semibold">
-                        {item.word[additionalLetterIndex]}
-                      </span>
-                      {item.word.slice(additionalLetterIndex + 1)}
-                    </>
-                  ) : (
-                    item.word
-                  )}
+                  {item.word.split('').map((letter, index) => (
+                    <span
+                      key={index}
+                      className={highlightPositions.includes(index) ? "text-destructive font-semibold" : ""}
+                    >
+                      {letter}
+                    </span>
+                  ))}
                 </a>
               );
             })}

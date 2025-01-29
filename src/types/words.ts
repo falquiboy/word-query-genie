@@ -1,6 +1,7 @@
 export interface WordResult {
   word: string;
   is_exact: boolean;
+  wildcard_positions?: number[];
 }
 
 export interface WordGroups {
@@ -9,7 +10,8 @@ export interface WordGroups {
 
 export interface WordVariation {
   word: string;
-  variation_type: 'exact' | 'plus_one' | 'shorter';
+  variation_type: 'exact' | 'plus_one' | 'wildcard';
+  wildcard_positions?: number[];
 }
 
 export interface AnagramResults {

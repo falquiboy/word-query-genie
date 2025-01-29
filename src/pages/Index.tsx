@@ -92,7 +92,8 @@ const Index = () => {
             
             targetGroup[length].push({
               word: item.word,
-              is_exact: item.variation_type === 'exact'
+              is_exact: item.variation_type === 'exact',
+              wildcard_positions: item.wildcard_positions
             });
           });
 
@@ -210,7 +211,7 @@ const Index = () => {
             mode={mode}
             showShorter={showShorter}
             onShowShorterChange={setShowShorter}
-            hasShorterWords={hasShorterWords}
+            hasShorterWords={results && Object.keys(results.shorter).length > 0}
           />
           <SearchStatus
             isLoading={isLoading}
