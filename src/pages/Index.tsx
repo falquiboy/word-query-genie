@@ -6,7 +6,7 @@ import SearchHeader from "@/components/SearchHeader";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import SearchStatus from "@/components/SearchStatus";
-import { AnagramResults, WordVariation } from "@/types/words";
+import { AnagramResults, WordVariation, WordResult } from "@/types/words";
 
 const Index = () => {
   const [query, setQuery] = useState("");
