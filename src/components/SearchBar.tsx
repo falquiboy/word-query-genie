@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Mic } from "lucide-react";
 import { Toggle } from "./ui/toggle";
 
 interface SearchBarProps {
@@ -47,45 +47,45 @@ const SearchBar = ({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyPress={handleKeyPress}
-          className="flex-1 h-12 text-lg shadow-sm"
+          className="flex-1 h-10 text-base shadow-sm"
         />
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onToggleRecording}
-          className={`h-12 w-12 transition-colors duration-200 shadow-sm ${
-            isRecording ? "bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-800/50" : ""
-          }`}
-        >
-          {isRecording ? 
-            <MicOff className="h-5 w-5 text-red-500" /> : 
-            <Mic className="h-5 w-5" />
-          }
-        </Button>
+        {mode === "natural" && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onToggleRecording}
+            className={`h-10 w-10 transition-colors duration-200 shadow-sm ${
+              isRecording ? "bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-800/50" : ""
+            }`}
+          >
+            <Mic className="h-4 w-4" />
+          </Button>
+        )}
         <Button 
           onClick={onSearch} 
-          className="h-12 px-6 shadow-sm"
+          size="icon"
+          className="h-10 w-10 shadow-sm"
           disabled={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <>
-              <Search className="h-5 w-5 mr-2" />
-              Buscar
-            </>
+            <Search className="h-4 w-4" />
           )}
         </Button>
       </div>
       {mode === "anagrams" && hasShorterWords && (
-        <div className="flex items-center gap-2">
-          <Toggle
-            pressed={showShorter}
-            onPressedChange={onShowShorterChange}
-            aria-label="Mostrar palabras más cortas"
+        <div className="flex items-center justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            className={`transition-colors duration-200 ${
+              showShorter ? "bg-accent text-accent-foreground" : ""
+            }`}
+            onClick={() => onShowShorterChange?.(!showShorter)}
           >
-            Mostrar palabras más cortas
-          </Toggle>
+            Mostrar solo palabras más cortas
+          </Button>
         </div>
       )}
     </div>
