@@ -353,6 +353,12 @@ export type Database = {
           variation_type: string
         }[]
       }
+      get_spanish_alphabet: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          letter: string
+        }[]
+      }
       get_words_batch: {
         Args: {
           batch_size: number
