@@ -53,7 +53,7 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
                   {additionalLetterIndex >= 0 ? (
                     <>
                       {item.word.slice(0, additionalLetterIndex)}
-                      <span className="text-primary font-semibold">
+                      <span className="text-destructive font-semibold">
                         {item.word[additionalLetterIndex]}
                       </span>
                       {item.word.slice(additionalLetterIndex + 1)}
