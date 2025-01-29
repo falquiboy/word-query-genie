@@ -12,6 +12,7 @@ export interface WordVariation {
   word: string;
   variation_type: 'exact' | 'plus_one' | 'wildcard' | 'shorter';
   wildcards_used: number;
+  sort_order: number;
   wildcard_positions?: number[];
 }
 

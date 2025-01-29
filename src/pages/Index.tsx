@@ -100,11 +100,17 @@ const Index = () => {
             if (!targetGroup[length]) {
               targetGroup[length] = [];
             }
+
+            // Calculate wildcard positions based on the original query
+            const wildcardPositions = processedQuery.split('').reduce((positions: number[], char, index) => {
+              if (char === '*') positions.push(index);
+              return positions;
+            }, []);
             
             targetGroup[length].push({
               word: item.word,
               is_exact: item.variation_type === 'exact',
-              wildcard_positions: item.wildcard_positions
+              wildcard_positions: wildcardPositions
             });
           });
 
