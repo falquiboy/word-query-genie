@@ -18,10 +18,9 @@ const Index = () => {
   const chunksRef = useRef<Blob[]>([]);
 
   const processQuery = (inputQuery: string): string => {
-    if (!inputQuery.includes('*') && mode === "anagrams") {
-      if (inputQuery.length > 7) {
-        return '*' + inputQuery;
-      }
+    // Only process if it's anagrams mode and there are no wildcards
+    if (mode === "anagrams" && !inputQuery.includes('*')) {
+      console.log('Processing query:', inputQuery);
       const letters = inputQuery.split('');
       const bestPosition = Math.floor(letters.length / 2);
       return [...letters.slice(0, bestPosition), '*', ...letters.slice(bestPosition)].join('');
