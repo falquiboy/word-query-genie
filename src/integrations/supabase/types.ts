@@ -297,6 +297,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_letters: {
+        Args: {
+          input_text: string
+        }
+        Returns: {
+          letter: string
+          count: number
+        }[]
+      }
       custom_sort_chars: {
         Args: {
           input_str: string
