@@ -1,5 +1,4 @@
 import React from "react";
-import AdUnit from "./AdUnit";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
 import { Copy } from "lucide-react";
@@ -9,16 +8,17 @@ interface SearchResultsProps {
   results: AnagramResults | null;
   totalWords: number;
   showShorter: boolean;
+  mode: "anagrams" | "natural";
 }
 
-const WordList = ({ title, words }: { title: string; words: WordGroups }) => {
+const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mode: "anagrams" | "natural" }) => {
   if (!words || Object.keys(words).length === 0) return null;
 
   const entries = Object.entries(words).sort(([a], [b]) => Number(b) - Number(a));
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-primary/90">{title}</h3>
+      {mode === "anagrams" && <h3 className="text-lg font-semibold text-primary/90">{title}</h3>}
       {entries.map(([length, wordList]) => (
         <div key={length} className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground">
@@ -43,14 +43,19 @@ const WordList = ({ title, words }: { title: string; words: WordGroups }) => {
   );
 };
 
-const SearchResults = ({ results, totalWords, showShorter }: SearchResultsProps) => {
+const SearchResults = ({ results, totalWords, showShorter, mode }: SearchResultsProps) => {
   const { toast } = useToast();
 
   if (!results) return null;
 
   const handleCopyResults = async () => {
     try {
-      const activeResults = showShorter ? results.shorter : { ...results.exact, ...results.plusOne };
+      const activeResults = mode === "natural" 
+        ? results.exact 
+        : showShorter 
+          ? results.shorter 
+          : { ...results.exact, ...results.plusOne };
+
       const textToCopy = Object.entries(activeResults)
         .sort(([a], [b]) => Number(b) - Number(a))
         .map(([length, wordList]) => 
@@ -96,12 +101,14 @@ const SearchResults = ({ results, totalWords, showShorter }: SearchResultsProps)
         </Button>
       </div>
       <div className="space-y-8">
-        {showShorter ? (
-          <WordList title="Palabras más cortas" words={results.shorter} />
+        {mode === "natural" ? (
+          <WordList title="Resultados" words={results.exact} mode={mode} />
+        ) : showShorter ? (
+          <WordList title="Palabras más cortas" words={results.shorter} mode={mode} />
         ) : (
           <>
-            <WordList title="Anagramas exactos" words={results.exact} />
-            <WordList title="Palabras con una letra adicional" words={results.plusOne} />
+            <WordList title="Anagramas exactos" words={results.exact} mode={mode} />
+            <WordList title="Palabras con una letra adicional" words={results.plusOne} mode={mode} />
           </>
         )}
       </div>
