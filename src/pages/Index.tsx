@@ -58,8 +58,6 @@ const Index = () => {
         } else {
           const { data, error } = await supabase.rpc('find_word_variations', {
             input_text: query
-          }, {
-            count: 'exact'
           });
 
           if (error) {
@@ -204,7 +202,7 @@ const Index = () => {
             setQuery={setQuery}
             isRecording={isRecording}
             isLoading={isLoading}
-            onSearch={() => refetch()}
+            onSearch={handleSearch}
             onToggleRecording={isRecording ? stopRecording : startRecording}
             mode={mode}
             showShorter={showShorter}
@@ -220,6 +218,7 @@ const Index = () => {
             results={results} 
             totalWords={totalWords}
             showShorter={showShorter}
+            mode={mode}
           />
         </div>
       </div>
