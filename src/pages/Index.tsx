@@ -23,6 +23,7 @@ const Index = () => {
       if (!query.trim()) return { exact: {}, plusOne: {}, shorter: {} } as AnagramResults;
       
       try {
+        // Modo de lenguaje natural
         if (mode === "natural") {
           const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
             body: { query: query }
@@ -55,7 +56,9 @@ const Index = () => {
           });
 
           return { exact: groupedData, plusOne: {}, shorter: {} } as AnagramResults;
-        } else {
+        } 
+        // Modo de anagramas
+        else {
           const { data, error } = await supabase.rpc('find_word_variations', {
             input_text: query
           });
