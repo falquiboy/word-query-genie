@@ -30,7 +30,7 @@ const SearchBar = ({
   hasShorterWords = false,
 }: SearchBarProps) => {
   const placeholder = mode === "anagrams" 
-    ? "Ej: casa" 
+    ? "Ej: c*sa (usa * como comodín)" 
     : "Ej: palabras con q sin e ni i";
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
