@@ -6,7 +6,7 @@ import SearchHeader from "@/components/SearchHeader";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import SearchStatus from "@/components/SearchStatus";
-import { AnagramResults, WordVariation, WordResult } from "@/types/words";
+import { AnagramResults, WordVariation } from "@/types/words";
 
 const Index = () => {
   const [query, setQuery] = useState("");
@@ -19,13 +19,10 @@ const Index = () => {
 
   const processQuery = (inputQuery: string): string => {
     if (!inputQuery.includes('*') && mode === "anagrams") {
-      // Optimización: si la palabra es muy larga, colocamos el comodín al principio
       if (inputQuery.length > 7) {
         return '*' + inputQuery;
       }
-      
       const letters = inputQuery.split('');
-      // Para palabras más cortas, intentamos una posición óptima
       const bestPosition = Math.floor(letters.length / 2);
       return [...letters.slice(0, bestPosition), '*', ...letters.slice(bestPosition)].join('');
     }
@@ -40,16 +37,12 @@ const Index = () => {
       try {
         console.log('Iniciando búsqueda con modo:', mode, 'y query:', query);
         
-        // Modo de lenguaje natural
         if (mode === "natural") {
           const { data: sqlData, error: sqlError } = await supabase.functions.invoke('natural-to-sql', {
             body: { query: query }
           });
 
-          if (sqlError) {
-            console.error('Error en natural-to-sql:', sqlError);
-            throw sqlError;
-          }
+          if (sqlError) throw sqlError;
           if (!sqlData?.sqlQuery) throw new Error('No se pudo generar la consulta SQL');
 
           console.log('Consulta SQL generada:', sqlData.sqlQuery);
@@ -77,27 +70,16 @@ const Index = () => {
 
           return { exact: groupedData, plusOne: {}, shorter: {} } as AnagramResults;
         } 
-        // Modo de anagramas
         else {
           const processedQuery = processQuery(query);
           console.log('Ejecutando find_word_variations con:', processedQuery);
           
-          // Agregamos un timeout de 20 segundos
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('La búsqueda está tomando demasiado tiempo. Por favor, intenta una consulta más específica.')), 20000);
-          });
-
-          const queryPromise = supabase.rpc('find_word_variations', {
+          const { data, error } = await supabase.rpc('find_word_variations', {
             input_text: processedQuery
           });
 
-          const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
-
           if (error) {
             console.error('Error en find_word_variations:', error);
-            if (error.message?.includes('timeout')) {
-              throw new Error('La búsqueda está tomando demasiado tiempo. Por favor, intenta una consulta más específica.');
-            }
             throw error;
           }
 
@@ -113,10 +95,7 @@ const Index = () => {
             if (!item || typeof item.word !== 'string') return;
             
             const length = item.word.length.toString();
-            const targetGroup = 
-              item.variation_type === 'exact' ? results.exact :
-              item.variation_type === 'plus_one' ? results.plusOne :
-              results.shorter;
+            const targetGroup = results.exact;
 
             if (!targetGroup[length]) {
               targetGroup[length] = [];
@@ -146,18 +125,6 @@ const Index = () => {
     enabled: false,
     retry: false,
   });
-
-  const handleSearch = async () => {
-    if (!query.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Por favor, ingresa una consulta.",
-      });
-      return;
-    }
-    refetch();
-  };
 
   const startRecording = async () => {
     try {

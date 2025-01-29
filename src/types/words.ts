@@ -11,6 +11,7 @@ export interface WordGroups {
 export interface WordVariation {
   word: string;
   variation_type: 'exact' | 'plus_one' | 'wildcard' | 'shorter';
+  wildcards_used: number;
   wildcard_positions?: number[];
 }
 
