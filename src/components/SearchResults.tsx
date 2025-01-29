@@ -14,7 +14,7 @@ interface SearchResultsProps {
 const WordList = ({ title, words }: { title: string; words: WordGroups }) => {
   if (!words || Object.keys(words).length === 0) return null;
 
-  const entries = Object.entries(words).sort(([a], [b]) => Number(a) - Number(b));
+  const entries = Object.entries(words).sort(([a], [b]) => Number(b) - Number(a));
 
   return (
     <div className="space-y-4">
@@ -50,27 +50,15 @@ const SearchResults = ({ results, totalWords, showShorter }: SearchResultsProps)
 
   const handleCopyResults = async () => {
     try {
-      const sections = [
-        { title: "Anagramas exactos", words: results.exact },
-        { title: "Palabras con una letra adicional", words: results.plusOne },
-        ...(showShorter ? [{ title: "Palabras más cortas", words: results.shorter }] : [])
-      ];
-
-      const textToCopy = sections
-        .filter(section => Object.keys(section.words).length > 0)
-        .map(section => {
-          const entries = Object.entries(section.words)
-            .sort(([a], [b]) => Number(a) - Number(b));
-
-          return `${section.title}:\n\n${
-            entries.map(([length, wordList]) => 
-              `${length} letras (${wordList.length} palabras):\n${
-                wordList.map(w => w.word).join(", ")
-              }`
-            ).join("\n\n")
-          }`;
-        })
-        .join("\n\n" + "=".repeat(40) + "\n\n");
+      const activeResults = showShorter ? results.shorter : { ...results.exact, ...results.plusOne };
+      const textToCopy = Object.entries(activeResults)
+        .sort(([a], [b]) => Number(b) - Number(a))
+        .map(([length, wordList]) => 
+          `${length} letras (${wordList.length} palabras):\n${
+            wordList.map(w => w.word).join(", ")
+          }`
+        )
+        .join("\n\n");
 
       await navigator.clipboard.writeText(textToCopy);
       
@@ -108,9 +96,14 @@ const SearchResults = ({ results, totalWords, showShorter }: SearchResultsProps)
         </Button>
       </div>
       <div className="space-y-8">
-        <WordList title="Anagramas exactos" words={results.exact} />
-        <WordList title="Palabras con una letra adicional" words={results.plusOne} />
-        {showShorter && <WordList title="Palabras más cortas" words={results.shorter} />}
+        {showShorter ? (
+          <WordList title="Palabras más cortas" words={results.shorter} />
+        ) : (
+          <>
+            <WordList title="Anagramas exactos" words={results.exact} />
+            <WordList title="Palabras con una letra adicional" words={results.plusOne} />
+          </>
+        )}
       </div>
     </div>
   );
