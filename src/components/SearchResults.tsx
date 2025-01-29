@@ -11,7 +11,37 @@ interface SearchResultsProps {
   mode: "anagrams" | "natural";
 }
 
-const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mode: "anagrams" | "natural" }) => {
+const findExtraLetter = (baseWord: string, longerWord: string): number => {
+  const baseChars = baseWord.toLowerCase().split('').sort();
+  const longerChars = longerWord.toLowerCase().split('').sort();
+  
+  for (let i = 0; i < longerChars.length; i++) {
+    const char = longerChars[i];
+    const index = baseChars.indexOf(char);
+    if (index === -1) {
+      return longerWord.toLowerCase().indexOf(char);
+    }
+    baseChars.splice(index, 1);
+  }
+  return -1;
+};
+
+const WordWithHighlight = ({ word, originalWord }: { word: string, originalWord?: string }) => {
+  if (!originalWord) return <span>{word}</span>;
+  
+  const extraLetterIndex = findExtraLetter(originalWord, word);
+  if (extraLetterIndex === -1) return <span>{word}</span>;
+  
+  return (
+    <span>
+      {word.slice(0, extraLetterIndex)}
+      <span className="text-destructive font-semibold">{word[extraLetterIndex]}</span>
+      {word.slice(extraLetterIndex + 1)}
+    </span>
+  );
+};
+
+const WordList = ({ title, words, mode, originalWord }: { title: string; words: WordGroups; mode: "anagrams" | "natural", originalWord?: string }) => {
   if (!words || Object.keys(words).length === 0) return null;
 
   const entries = Object.entries(words).sort(([a], [b]) => Number(b) - Number(a));
@@ -33,7 +63,7 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
                 rel="noopener noreferrer"
                 className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
               >
-                {item.word}
+                <WordWithHighlight word={item.word} originalWord={originalWord} />
               </a>
             ))}
           </div>
@@ -84,6 +114,9 @@ const SearchResults = ({ results, totalWords, showShorter, mode }: SearchResults
 
   if (!hasResults) return null;
 
+  // Obtener la palabra original de los resultados exactos
+  const originalWord = Object.values(results.exact)[0]?.[0]?.word || '';
+
   return (
     <div className="border rounded-xl p-6 bg-card/50 backdrop-blur-sm shadow-sm animate-fade-in">
       <div className="flex items-center justify-between mb-6">
@@ -108,7 +141,7 @@ const SearchResults = ({ results, totalWords, showShorter, mode }: SearchResults
         ) : (
           <>
             <WordList title="Anagramas exactos" words={results.exact} mode={mode} />
-            <WordList title="Palabras con una letra adicional" words={results.plusOne} mode={mode} />
+            <WordList title="Palabras con una letra adicional" words={results.plusOne} mode={mode} originalWord={originalWord} />
           </>
         )}
       </div>
