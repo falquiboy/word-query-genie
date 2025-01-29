@@ -1,69 +1,40 @@
-import React from "react";
-import { Button } from "./ui/button";
-import { useToast } from "./ui/use-toast";
-import { Copy } from "lucide-react";
-import { AnagramResults, WordGroups } from "@/types/words";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { WordGroups } from "@/types/words";
+import { ArrowDownToLine, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface SearchResultsProps {
-  results: AnagramResults | null;
-  totalWords: number;
-  showShorter: boolean;
+  results: Record<string, WordGroups>;
+  isLoading: boolean;
   mode: "anagrams" | "natural";
 }
 
-const findExtraLetter = (baseWord: string, longerWord: string): number => {
-  const baseChars = baseWord.toLowerCase().split('').sort();
-  const longerChars = longerWord.toLowerCase().split('').sort();
-  
-  for (let i = 0; i < longerChars.length; i++) {
-    const char = longerChars[i];
-    const index = baseChars.indexOf(char);
-    if (index === -1) {
-      return longerWord.toLowerCase().indexOf(char);
-    }
-    baseChars.splice(index, 1);
-  }
-  return -1;
-};
-
-const WordWithHighlight = ({ word, originalWord }: { word: string, originalWord?: string }) => {
-  if (!originalWord) return <span>{word}</span>;
-  
-  const extraLetterIndex = findExtraLetter(originalWord, word);
-  if (extraLetterIndex === -1) return <span>{word}</span>;
-  
-  return (
-    <span>
-      {word.slice(0, extraLetterIndex)}
-      <span className="text-destructive font-semibold">{word[extraLetterIndex]}</span>
-      {word.slice(extraLetterIndex + 1)}
-    </span>
-  );
-};
-
-const WordList = ({ title, words, mode, originalWord }: { title: string; words: WordGroups; mode: "anagrams" | "natural", originalWord?: string }) => {
+const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mode: "anagrams" | "natural" }) => {
   if (!words || Object.keys(words).length === 0) return null;
 
   const entries = Object.entries(words).sort(([a], [b]) => Number(b) - Number(a));
 
   return (
     <div className="space-y-4">
-      {mode === "anagrams" && <h3 className="text-lg font-semibold text-primary/90">{title}</h3>}
-      {entries.map(([length, wordList]) => (
-        <div key={length} className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">
-            {length} letras ({wordList.length} palabras):
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {wordList.map((item) => (
+      <h3 className="text-lg font-semibold">{title}</h3>
+      {entries.map(([key, items]) => (
+        <div key={key} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {mode === "anagrams" ? `${items.length} palabra${items.length === 1 ? "" : "s"}` : key}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            {items.map((item, index) => (
               <a
-                key={item.word}
-                href={`https://dle.rae.es/${item.word.toLowerCase()}`}
+                key={`${item.word}-${index}`}
+                href={`https://dle.rae.es/${item.word}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 bg-secondary/50 hover:bg-secondary/80 rounded-md text-center transition-colors duration-200 hover:scale-105 transform"
               >
-                <WordWithHighlight word={item.word} originalWord={originalWord} />
+                {item.word}
               </a>
             ))}
           </div>
@@ -73,75 +44,61 @@ const WordList = ({ title, words, mode, originalWord }: { title: string; words: 
   );
 };
 
-const SearchResults = ({ results, totalWords, showShorter, mode }: SearchResultsProps) => {
+const SearchResults = ({ results, isLoading, mode }: SearchResultsProps) => {
   const { toast } = useToast();
 
-  if (!results) return null;
+  if (isLoading) {
+    return (
+      <div className="border rounded-xl p-6 bg-card/50 backdrop-blur-sm shadow-sm">
+        <div className="flex items-center justify-center">
+          <div className="animate-pulse space-y-4 w-full">
+            <div className="h-4 bg-muted rounded w-1/4"></div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="h-8 bg-muted rounded col-span-1"></div>
+              <div className="h-8 bg-muted rounded col-span-1"></div>
+              <div className="h-8 bg-muted rounded col-span-1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const handleCopyResults = async () => {
-    try {
-      const activeResults = mode === "natural" 
-        ? results.exact 
-        : showShorter 
-          ? results.shorter 
-          : { ...results.exact, ...results.plusOne };
-
-      const textToCopy = Object.entries(activeResults)
-        .sort(([a], [b]) => Number(b) - Number(a))
-        .map(([length, wordList]) => 
-          `${length} letras (${wordList.length} palabras):\n${
-            wordList.map(w => w.word).join(", ")
-          }`
-        )
-        .join("\n\n");
-
-      await navigator.clipboard.writeText(textToCopy);
-      
-      toast({
-        title: "¡Copiado!",
-        description: "La lista de palabras ha sido copiada al portapapeles",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo copiar al portapapeles",
-      });
-    }
-  };
-
-  const hasResults = totalWords > 0;
+  const hasResults = Object.values(results).some((group) => Object.keys(group).length > 0);
 
   if (!hasResults) return null;
-
-  // Obtener la palabra original de los resultados exactos
-  const originalWord = Object.values(results.exact)[0]?.[0]?.word || '';
 
   return (
     <div className="border rounded-xl p-6 bg-card/50 backdrop-blur-sm shadow-sm animate-fade-in">
       <div className="flex items-center justify-between mb-6">
-        <div className="text-lg font-semibold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary/90 to-primary/60">
-          Total de palabras encontradas: {totalWords}
-        </div>
+        <h2 className="text-2xl font-bold">Resultados</h2>
         <Button
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={handleCopyResults}
+          onClick={() => {
+            const text = Object.values(results)
+              .flatMap((group) => Object.values(group))
+              .flatMap((items) => items.map((item) => item.word))
+              .join("\n");
+            navigator.clipboard.writeText(text);
+            toast({
+              title: "¡Copiado!",
+              description: "Las palabras se han copiado al portapapeles",
+            });
+          }}
         >
-          <Copy className="h-4 w-4" />
-          Copiar resultados
+          <Copy className="w-4 h-4" />
+          <span className="hidden sm:inline">Copiar</span>
         </Button>
       </div>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {mode === "natural" ? (
-          <WordList title="Resultados" words={results.exact} mode={mode} />
-        ) : showShorter ? (
-          <WordList title="Palabras más cortas" words={results.shorter} mode={mode} />
+          <WordList title="Resultados" words={results.natural} mode={mode} />
         ) : (
           <>
             <WordList title="Anagramas exactos" words={results.exact} mode={mode} />
-            <WordList title="Palabras con una letra adicional" words={results.plusOne} mode={mode} originalWord={originalWord} />
+            <WordList title="Palabras con una letra adicional" words={results.plusOne} mode={mode} />
           </>
         )}
       </div>
