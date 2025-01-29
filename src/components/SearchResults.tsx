@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import AdUnit from "./AdUnit";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
 import { Copy } from "lucide-react";
-import { Toggle } from "./ui/toggle";
 import { AnagramResults, WordGroups } from "@/types/words";
 
 interface SearchResultsProps {
   results: AnagramResults | null;
   totalWords: number;
+  showShorter: boolean;
 }
 
 const WordList = ({ title, words }: { title: string; words: WordGroups }) => {
@@ -43,9 +43,8 @@ const WordList = ({ title, words }: { title: string; words: WordGroups }) => {
   );
 };
 
-const SearchResults = ({ results, totalWords }: SearchResultsProps) => {
+const SearchResults = ({ results, totalWords, showShorter }: SearchResultsProps) => {
   const { toast } = useToast();
-  const [showShorter, setShowShorter] = useState(false);
 
   if (!results) return null;
 
@@ -92,8 +91,6 @@ const SearchResults = ({ results, totalWords }: SearchResultsProps) => {
 
   if (!hasResults) return null;
 
-  const hasShorterWords = Object.keys(results.shorter).length > 0;
-
   return (
     <div className="border rounded-xl p-6 bg-card/50 backdrop-blur-sm shadow-sm animate-fade-in">
       <div className="flex items-center justify-between mb-6">
@@ -113,20 +110,7 @@ const SearchResults = ({ results, totalWords }: SearchResultsProps) => {
       <div className="space-y-8">
         <WordList title="Anagramas exactos" words={results.exact} />
         <WordList title="Palabras con una letra adicional" words={results.plusOne} />
-        {hasShorterWords && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Toggle
-                pressed={showShorter}
-                onPressedChange={setShowShorter}
-                aria-label="Mostrar palabras más cortas"
-              >
-                Mostrar palabras más cortas
-              </Toggle>
-            </div>
-            {showShorter && <WordList title="Palabras más cortas" words={results.shorter} />}
-          </div>
-        )}
+        {showShorter && <WordList title="Palabras más cortas" words={results.shorter} />}
       </div>
     </div>
   );

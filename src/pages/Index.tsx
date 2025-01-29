@@ -11,6 +11,7 @@ import { AnagramResults, WordVariation, WordResult } from "@/types/words";
 const Index = () => {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<"anagrams" | "natural">("anagrams");
+  const [showShorter, setShowShorter] = useState(false);
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -188,8 +189,10 @@ const Index = () => {
   const totalWords = results ? 
     Object.values(results.exact).concat(
       Object.values(results.plusOne),
-      Object.values(results.shorter)
+      showShorter ? Object.values(results.shorter) : []
     ).reduce((total: number, wordList) => total + wordList.length, 0) : 0;
+
+  const hasShorterWords = results && Object.keys(results.shorter).length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
@@ -204,13 +207,20 @@ const Index = () => {
             onSearch={() => refetch()}
             onToggleRecording={isRecording ? stopRecording : startRecording}
             mode={mode}
+            showShorter={showShorter}
+            onShowShorterChange={setShowShorter}
+            hasShorterWords={hasShorterWords}
           />
           <SearchStatus
             isLoading={isLoading}
             error={error}
             noResults={!!results && totalWords === 0 && !isLoading}
           />
-          <SearchResults results={results} totalWords={totalWords} />
+          <SearchResults 
+            results={results} 
+            totalWords={totalWords}
+            showShorter={showShorter}
+          />
         </div>
       </div>
     </div>

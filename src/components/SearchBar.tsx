@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mic, MicOff, Search, Loader2 } from "lucide-react";
+import { Toggle } from "./ui/toggle";
 
 interface SearchBarProps {
   query: string;
@@ -11,6 +12,9 @@ interface SearchBarProps {
   onSearch: () => void;
   onToggleRecording: () => void;
   mode: "anagrams" | "natural";
+  showShorter?: boolean;
+  onShowShorterChange?: (show: boolean) => void;
+  hasShorterWords?: boolean;
 }
 
 const SearchBar = ({
@@ -21,6 +25,9 @@ const SearchBar = ({
   onSearch,
   onToggleRecording,
   mode,
+  showShorter = false,
+  onShowShorterChange,
+  hasShorterWords = false,
 }: SearchBarProps) => {
   const placeholder = mode === "anagrams" 
     ? "Ej: casa" 
@@ -33,7 +40,7 @@ const SearchBar = ({
   };
 
   return (
-    <div className="relative animate-fade-in delay-200">
+    <div className="relative animate-fade-in delay-200 space-y-3">
       <div className="flex gap-2">
         <Input
           placeholder={placeholder}
@@ -70,6 +77,17 @@ const SearchBar = ({
           )}
         </Button>
       </div>
+      {mode === "anagrams" && hasShorterWords && (
+        <div className="flex items-center gap-2">
+          <Toggle
+            pressed={showShorter}
+            onPressedChange={onShowShorterChange}
+            aria-label="Mostrar palabras más cortas"
+          >
+            Mostrar palabras más cortas
+          </Toggle>
+        </div>
+      )}
     </div>
   );
 };
