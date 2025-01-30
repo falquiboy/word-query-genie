@@ -21,10 +21,21 @@ const Index = () => {
     // Only process if it's anagrams mode and there are no wildcards
     if (mode === "anagrams" && !inputQuery.includes('*')) {
       console.log('Processing query:', inputQuery);
-      // Insert wildcard in the middle of the word
-      const letters = inputQuery.split('');
-      const bestPosition = Math.floor(letters.length / 2);
-      return letters.slice(0, bestPosition).join('') + '*' + letters.slice(bestPosition).join('');
+      // For words longer than 3 characters, insert wildcard after the first consonant
+      const letters = inputQuery.toUpperCase().split('');
+      const vowels = ['A', 'E', 'I', 'O', 'U'];
+      let wildcardPosition = 1; // Default position after first letter
+      
+      // Find the first consonant position
+      for (let i = 0; i < letters.length; i++) {
+        if (!vowels.includes(letters[i])) {
+          wildcardPosition = i + 1;
+          break;
+        }
+      }
+      
+      console.log('Inserting wildcard at position:', wildcardPosition);
+      return letters.slice(0, wildcardPosition).join('') + '*' + letters.slice(wildcardPosition).join('');
     }
     return inputQuery;
   };
