@@ -21,9 +21,10 @@ const Index = () => {
     // Only process if it's anagrams mode and there are no wildcards
     if (mode === "anagrams" && !inputQuery.includes('*')) {
       console.log('Processing query:', inputQuery);
+      // Insert wildcard in the middle of the word
       const letters = inputQuery.split('');
       const bestPosition = Math.floor(letters.length / 2);
-      return [...letters.slice(0, bestPosition), '*', ...letters.slice(bestPosition)].join('');
+      return letters.slice(0, bestPosition).join('') + '*' + letters.slice(bestPosition).join('');
     }
     return inputQuery;
   };
@@ -94,7 +95,9 @@ const Index = () => {
             if (!item || typeof item.word !== 'string') return;
             
             const length = item.word.length.toString();
-            const targetGroup = results.exact;
+            const targetGroup = item.variation_type === 'exact' ? results.exact : 
+                              item.variation_type === 'plus_one' ? results.plusOne :
+                              results.shorter;
 
             if (!targetGroup[length]) {
               targetGroup[length] = [];
