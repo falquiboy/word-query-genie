@@ -10,7 +10,7 @@ export interface WordGroups {
 
 export interface WordVariation {
   word: string;
-  variation_type: 'exact' | 'plus_one' | 'wildcard' | 'shorter';
+  variation_type: 'exact' | 'wildcard_1' | 'wildcard_2' | 'plus_one' | 'shorter';
   wildcards_used: number;
   sort_order: number;
   wildcard_positions?: number[];
