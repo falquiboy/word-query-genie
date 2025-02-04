@@ -17,29 +17,6 @@ const Index = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const processQuery = (inputQuery: string): string => {
-    // Only process if it's anagrams mode and there are no wildcards
-    if (mode === "anagrams" && !inputQuery.includes('*')) {
-      console.log('Processing query:', inputQuery);
-      // For words longer than 3 characters, insert wildcard after the first consonant
-      const letters = inputQuery.toUpperCase().split('');
-      const vowels = ['A', 'E', 'I', 'O', 'U'];
-      let wildcardPosition = 1; // Default position after first letter
-      
-      // Find the first consonant position
-      for (let i = 0; i < letters.length; i++) {
-        if (!vowels.includes(letters[i])) {
-          wildcardPosition = i + 1;
-          break;
-        }
-      }
-      
-      console.log('Inserting wildcard at position:', wildcardPosition);
-      return letters.slice(0, wildcardPosition).join('') + '*' + letters.slice(wildcardPosition).join('');
-    }
-    return inputQuery;
-  };
-
   const { data: results, isLoading, error, refetch } = useQuery({
     queryKey: ["words", query, mode],
     queryFn: async () => {
@@ -82,11 +59,10 @@ const Index = () => {
           return { exact: groupedData, plusOne: {}, shorter: {} } as AnagramResults;
         } 
         else {
-          const processedQuery = processQuery(query);
-          console.log('Ejecutando find_word_variations con:', processedQuery);
+          console.log('Ejecutando find_word_variations con:', query);
           
           const { data, error } = await supabase.rpc('find_word_variations', {
-            input_text: processedQuery
+            input_text: query
           });
 
           if (error) {
@@ -106,16 +82,19 @@ const Index = () => {
             if (!item || typeof item.word !== 'string') return;
             
             const length = item.word.length.toString();
-            const targetGroup = item.variation_type === 'exact' ? results.exact : 
-                              item.variation_type === 'plus_one' ? results.plusOne :
-                              results.shorter;
+            const targetGroup = 
+              item.variation_type === 'exact' || 
+              item.variation_type === 'wildcard_1' || 
+              item.variation_type === 'wildcard_2' ? results.exact :
+              item.variation_type === 'plus_one' ? results.plusOne :
+              results.shorter;
 
             if (!targetGroup[length]) {
               targetGroup[length] = [];
             }
 
             // Calculate wildcard positions based on the original query
-            const wildcardPositions = processedQuery.split('').reduce((positions: number[], char, index) => {
+            const wildcardPositions = query.split('').reduce((positions: number[], char, index) => {
               if (char === '*') positions.push(index);
               return positions;
             }, []);

@@ -11,20 +11,6 @@ interface SearchResultsProps {
   mode: "anagrams" | "natural";
 }
 
-const findAdditionalLetter = (word: string, baseWord: string): number => {
-  const wordChars = word.split('');
-  const baseChars = baseWord.split('');
-  
-  for (let i = 0; i < wordChars.length; i++) {
-    const tempWord = [...wordChars];
-    tempWord.splice(i, 1);
-    if (tempWord.sort().join('') === baseChars.sort().join('')) {
-      return i;
-    }
-  }
-  return -1;
-};
-
 const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mode: "anagrams" | "natural" }) => {
   if (!words || Object.keys(words).length === 0) return null;
 
@@ -39,32 +25,24 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
             {length} letras ({wordList.length} palabras):
           </h4>
           <div className="text-sm leading-relaxed flex flex-wrap gap-2">
-            {wordList.map((item) => {
-              const additionalLetterIndex = title === "Palabras con una letra adicional" ? findAdditionalLetter(item.word, item.word.slice(0, -1)) : -1;
-              const highlightPositions = item.wildcard_positions || [];
-              if (additionalLetterIndex >= 0) {
-                highlightPositions.push(additionalLetterIndex);
-              }
-              
-              return (
-                <a
-                  key={item.word}
-                  href={`https://dle.rae.es/${item.word.toLowerCase()}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors duration-200"
-                >
-                  {item.word.split('').map((letter, index) => (
-                    <span
-                      key={index}
-                      className={highlightPositions.includes(index) ? "text-destructive font-semibold" : ""}
-                    >
-                      {letter}
-                    </span>
-                  ))}
-                </a>
-              );
-            })}
+            {wordList.map((item) => (
+              <a
+                key={item.word}
+                href={`https://dle.rae.es/${item.word.toLowerCase()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary transition-colors duration-200"
+              >
+                {item.word.split('').map((letter, index) => (
+                  <span
+                    key={index}
+                    className={item.wildcard_positions?.includes(index) ? "text-destructive font-semibold" : ""}
+                  >
+                    {letter}
+                  </span>
+                ))}
+              </a>
+            ))}
           </div>
         </div>
       ))}
@@ -132,8 +110,8 @@ const SearchResults = ({ results, totalWords, showShorter, mode }: SearchResults
           <WordList title="Palabras más cortas" words={results.shorter} mode={mode} />
         ) : (
           <>
-            <WordList title="Anagramas exactos" words={results.exact} mode={mode} />
-            <WordList title="Palabras con una letra adicional" words={results.plusOne} mode={mode} />
+            <WordList title="Palabras formables" words={results.exact} mode={mode} />
+            <WordList title="Combinando con el tablero" words={results.plusOne} mode={mode} />
           </>
         )}
       </div>
