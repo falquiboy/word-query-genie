@@ -24,7 +24,7 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
           <h4 className="text-sm font-medium text-muted-foreground">
             {length} letras ({wordList.length} palabras):
           </h4>
-          <div className="text-sm leading-relaxed flex flex-wrap gap-2">
+          <div className="text-sm leading-relaxed flex flex-wrap gap-2 max-h-48 overflow-y-auto">
             {wordList.map((item) => (
               <a
                 key={item.word}
