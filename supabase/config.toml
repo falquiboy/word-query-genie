@@ -1,7 +1,7 @@
 project_id = "duxzmtvrcaphljakflod"
 
-[functions.natural-to-sql]
+[functions.voice-to-text]
 verify_jwt = false
 
-[functions.anagrams]
+[functions.natural-to-sql]
 verify_jwt = false
