@@ -110,8 +110,8 @@ const SearchResults = ({ results, totalWords, showShorter, mode }: SearchResults
           <WordList title="Palabras más cortas" words={results.shorter} mode={mode} />
         ) : (
           <>
-            <WordList title="Palabras formables" words={results.exact} mode={mode} />
-            <WordList title="Combinando con el tablero" words={results.plusOne} mode={mode} />
+            <WordList title="Palabras exactas" words={results.exact} mode={mode} />
+            <WordList title="Palabras con una letra adicional" words={results.plusOne} mode={mode} />
           </>
         )}
       </div>
