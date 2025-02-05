@@ -33,14 +33,7 @@ const WordList = ({ title, words, mode }: { title: string; words: WordGroups; mo
                 rel="noopener noreferrer"
                 className="hover:text-primary transition-colors duration-200"
               >
-                {item.word.split('').map((letter, index) => (
-                  <span
-                    key={index}
-                    className={item.wildcard_positions?.includes(index) ? "text-destructive font-semibold" : ""}
-                  >
-                    {letter}
-                  </span>
-                ))}
+                {item.word}
               </a>
             ))}
           </div>
